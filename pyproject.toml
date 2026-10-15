@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hoppy"
+dynamic = ["version"]
+description = "A desktop mascot for Windows that brings Claude Code one click away (unofficial hobby project)"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+dependencies = []
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: Microsoft :: Windows",
+    "Environment :: Win32 (MS Windows)",
+]
+
+[project.urls]
+Homepage = "https://github.com/Bazox96/hoppy"
+
+# gui-scripts: partono senza finestra console
+[project.gui-scripts]
+hoppy = "hoppy.pet:main"
+hoppy-inline = "hoppy.inline:main"
+hoppy-popup = "hoppy.popup:main"
+
+[tool.setuptools]
+packages = ["hoppy"]
+
+[tool.setuptools.dynamic]
+version = { attr = "hoppy.__version__" }

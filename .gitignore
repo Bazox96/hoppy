@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+
+# dati personali: Hoppy li tiene in %APPDATA%\Hoppy, ma per sicurezza
+config.json
+pet_memory.json
+pet_proposals.md
+pet_chores.json
+pet_commands.json
+pet_sessions/
+*.wav
