@@ -11,7 +11,10 @@ you want, it helps you keep your desktop and disk tidy.
 > with Anthropic. It is made for fun, may contain bugs and comes with no warranty (see
 > [LICENSE](LICENSE)). Use it at your own risk.
 
-**The user interface is in Italian.**
+![Hoppy greets you, opens its menu and explains an error on the screen at the blackboard](docs/preview-en.gif)
+
+The interface is in English or Italian (Settings > *Mascot* > *Lingua / Language*; by
+default the same as Windows), and Claude answers in that language.
 
 ## What's inside
 
@@ -27,7 +30,7 @@ Three programs, independent but meant to work together:
 
 - **Lives on your desktop:** walks on the taskbar and on window edges, climbs with super
   powers (web, rockets, telekinesis), moves between screens through portals, floats next
-  to the cursor, falls asleep, gets hungry (right click > *Dai da mangiare*), and likes
+  to the cursor, falls asleep, gets hungry (right click > *Feed me*), and likes
   being petted by rubbing the cursor over it.
 - **Character:** Hoppy the octopus, or the little crab (from the Settings).
 - **Chats:** double click. It remembers your name and what you tell it, knows the Claude
@@ -39,7 +42,7 @@ Three programs, independent but meant to work together:
 - **Notifies:** when a Claude Code session finishes or seems to be waiting for your
   permission; offers to explain errors you copy; keeps an eye on RAM and uptime; goes
   quiet in a corner during calls.
-- **Explains your screen:** *Spiegami lo schermo* in the menu, or «cosa succede?» in the
+- **Explains your screen:** *Explain my screen* in the menu, or «what's going on?» in the
   chat: Hoppy takes a picture of the window you were working on and Claude explains what
   is going on, on the blackboard.
 - **Helps with work:** morning standup (from yesterday's Claude Code sessions and
@@ -89,9 +92,9 @@ pythonw -m hoppy.pet
 Once a day Hoppy checks GitHub for a new release. If there is one, it asks you in its
 speech bubble; answer 👍 and it closes the mascot, popup and inline, installs the new
 version with pip (no git needed) and starts them again. 👎 skips that version. To check
-right away, write *aggiornati* in the chat or use *Cerca aggiornamenti* in the menu. The
+right away, write *update yourself* in the chat or use *Check for updates* in the menu. The
 outcome is written to `%APPDATA%\Hoppy\update.log`; you can turn the check off in the
-Settings (*Avvisi* tab). After every update, also a manual one, Hoppy shows what's new on
+Settings (*Alerts* tab). After every update, also a manual one, Hoppy shows what's new on
 the blackboard.
 
 To update by hand: `pipx install --force git+https://github.com/Bazox96/hoppy`.
@@ -104,12 +107,12 @@ pipx's bookkeeping. If you run Hoppy from source, it only tells you a new versio
 - **Double click:** chat.
 - **Drag it** with the left button and drop it.
 - **Impostazioni…** (Settings, at the bottom of the menu): every feature can be turned on
-  or off, with thresholds and timings; the *Avvio e file* tab opens the data folder,
+  or off, with thresholds and timings; the *Startup and files* tab opens the data folder,
   `config.json`, the quick commands and the memory.
 
 ### Quick commands
 
-In `%APPDATA%\Hoppy\pet_commands.json` (from Settings > *Comandi rapidi*):
+In `%APPDATA%\Hoppy\pet_commands.json` (from Settings > *Quick commands*):
 
 ```json
 [
@@ -118,7 +121,7 @@ In `%APPDATA%\Hoppy\pet_commands.json` (from Settings > *Comandi rapidi*):
 ]
 ```
 
-In the chat: «esegui il comando docker» → Hoppy asks for confirmation and runs it in a new
+In the chat: «run the docker command» → Hoppy asks for confirmation and runs it in a new
 PowerShell window. (The keys are Italian: `nome` = name, `descrizione` = description,
 `comando` = command, `cartella` = working folder.)
 
@@ -132,7 +135,7 @@ them with that profile.
 
 - Everything is stored locally in `%APPDATA%\Hoppy`: `config.json`, the memory
   (`pet_memory.json`, human readable), the chats (`pet_sessions/`), quick commands, the
-  cleanup log. *Dimentica tutto* (forget everything) in the menu deletes memory and chats.
+  cleanup log. *Forget everything* in the menu deletes memory and chats.
 - **Only what is needed goes to Claude:** the text you type or select, the open document
   for `;;…??` questions, the errors you ask to explain, and a few relevant snippets from
   your Claude Code project memories. Hoppy does not read credentials, `settings.json` or
@@ -153,14 +156,14 @@ them with that profile.
 
 ## Uninstall
 
-1. Settings > *Avvio e file*: turn off autostart (or delete the «Hoppy» shortcut in
+1. Settings > *Startup and files*: turn off autostart (or delete the «Hoppy» shortcut in
    `shell:startup`).
 2. `pipx uninstall hoppy`
 3. To delete your data too: remove `%APPDATA%\Hoppy`.
 
 ## Known limitations
 
-- Windows only, Italian user interface only.
+- Windows only; English and Italian.
 - Meeting mode detects calls from the microphone in use or a full-screen app: screen
   sharing with the microphone off is not detected.
 - In `hoppy-inline`, accented letters typed with dead keys are not captured.
@@ -176,7 +179,8 @@ python tests/run_all.py
 Tests run with hidden windows and temporary data and folders.
 
 To publish a release: bump `__version__` in `hoppy/__init__.py`, add what's new at the
-top of `hoppy/changelog.py` (Hoppy shows it after updating), commit, then
+top of `hoppy/changelog.py` (Hoppy shows it after updating) with its English text in
+`hoppy/en.py`, commit, then
 `gh release create vX.Y.Z --notes "..."`. The tag must match the version.
 
 ## License

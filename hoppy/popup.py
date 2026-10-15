@@ -20,6 +20,7 @@ from pathlib import Path
 from tkinter import messagebox
 
 from . import config as pet_config
+from .i18n import T
 
 # ---- configurazione ---------------------------------------------------------
 # Evita Alt e Win: il loro rilascio "a vuoto" attiva barra menu / key tips nell'app
@@ -29,7 +30,7 @@ HOTKEY_MODS = 0x0002 | 0x0004 | 0x4000  # MOD_CONTROL | MOD_SHIFT | MOD_NOREPEAT
 HOTKEY_VK = 0x20                        # VK_SPACE
 MODEL = pet_config.load()["popup_model"]    # dalle Impostazioni della mascotte
 TIMEOUT_S = 120
-SYSTEM_PROMPT = (
+SYSTEM_PROMPT = T(
     "Sei un assistente integrato in un popup di sistema su Windows. "
     "L'utente ti dà un'ISTRUZIONE e, se presente, un TESTO SELEZIONATO. "
     "Rispondi SOLO con il testo risultante, pronto per essere incollato al posto "
@@ -87,10 +88,10 @@ def ask_claude(instruction, selection):
     """Ritorna (testo, None) oppure (None, messaggio di errore)."""
     exe = shutil.which("claude") or str(Path.home() / ".local" / "bin" / "claude.exe")
     if not Path(exe).exists():
-        return None, "Eseguibile 'claude' non trovato nel PATH."
-    prompt = f"ISTRUZIONE:\n{instruction}"
+        return None, T("Eseguibile 'claude' non trovato nel PATH.")
+    prompt = T("ISTRUZIONE:") + f"\n{instruction}"
     if selection:
-        prompt += f"\n\nTESTO SELEZIONATO:\n{selection}"
+        prompt += "\n\n" + T("TESTO SELEZIONATO:") + f"\n{selection}"
     cmd = [exe, "-p", "--model", MODEL, "--output-format", "text",
            "--no-session-persistence", "--setting-sources", "",
            "--strict-mcp-config", "--tools", "", "--system-prompt", SYSTEM_PROMPT]
@@ -99,7 +100,7 @@ def ask_claude(instruction, selection):
                            encoding="utf-8", timeout=TIMEOUT_S,
                            cwd=tempfile.gettempdir(), creationflags=CREATE_NO_WINDOW)
     except subprocess.TimeoutExpired:
-        return None, f"Nessuna risposta entro {TIMEOUT_S}s."
+        return None, T("Nessuna risposta entro {secs}s.").format(secs=TIMEOUT_S)
     if r.returncode != 0:
         return None, (r.stderr or r.stdout or f"exit code {r.returncode}").strip()
     return r.stdout.strip(), None
@@ -137,13 +138,13 @@ class Popup:
 
         self.btns = tk.Frame(w, bg=BG)
         self.btns.pack(fill="x")
-        self.btn_apply = self._button(self.btns, "Sostituisci", self.apply, ACCENT)
+        self.btn_apply = self._button(self.btns, T("Sostituisci"), self.apply, ACCENT)
         self.btn_apply.pack(side="left")
-        self.btn_copy = self._button(self.btns, "Copia", self.copy, BG_IN)
+        self.btn_copy = self._button(self.btns, T("Copia"), self.copy, BG_IN)
         self.btn_copy.pack(side="left", padx=(6, 0))
         self.status = tk.Label(self.btns, text="", bg=BG, fg=FG_DIM, font=FONT_SMALL)
         self.status.pack(side="left", padx=10)
-        self._button(self.btns, "Esci", root.destroy, BG).pack(side="right")
+        self._button(self.btns, T("Esci"), root.destroy, BG).pack(side="right")
 
     @staticmethod
     def _button(parent, text, cmd, bg):
@@ -190,8 +191,9 @@ class Popup:
         self.out.pack_forget()
         self.status.config(text="")
         n = len(self.selection)
-        self.info.config(text=f"Selezione: {n} caratteri" if n else "Nessuna selezione")
-        self.btn_apply.config(text="Sostituisci" if n else "Inserisci", state="disabled")
+        self.info.config(text=T("Selezione: {n} caratteri").format(n=n) if n
+                         else T("Nessuna selezione"))
+        self.btn_apply.config(text=T("Sostituisci") if n else T("Inserisci"), state="disabled")
         self.btn_copy.config(state="disabled")
         x, y = self.root.winfo_pointerxy()
         self.win.geometry(f"+{x}+{y}")
@@ -236,7 +238,7 @@ class Popup:
             return
         self.busy = True
         self.sent_instr = instr
-        self.status.config(text="Attendo Claude…")
+        self.status.config(text=T("Attendo Claude…"))
         self.btn_apply.config(state="disabled")
         self.btn_copy.config(state="disabled")
         threading.Thread(
@@ -250,7 +252,7 @@ class Popup:
         self.out.delete("1.0", "end")
         if err:
             self.result = None
-            self.out.insert("1.0", "Errore: " + err)
+            self.out.insert("1.0", T("Errore: ") + err)
             self.out.config(fg=FG_ERR)
         else:
             self.result = text
@@ -282,7 +284,7 @@ class Popup:
             return
         self.set_clip(self.result)
         self.clip_backup = ""
-        self.status.config(text="Copiato")
+        self.status.config(text=T("Copiato"))
 
 
 def main():
@@ -312,8 +314,8 @@ def main():
                 elif kind == "hotkey_error":
                     messagebox.showerror(
                         "Claude Popup",
-                        f"Impossibile registrare la hotkey (errore {data}). "
-                        "Un'altra istanza è già in esecuzione?")
+                        T("Impossibile registrare la hotkey (errore {data}). "
+                          "Un'altra istanza è già in esecuzione?").format(data=data))
                     root.destroy()
                     return
         except queue.Empty:

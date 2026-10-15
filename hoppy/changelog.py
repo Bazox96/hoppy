@@ -1,16 +1,18 @@
 """Novità di ogni versione: la mascotte le mostra sulla lavagna la prima volta che parte dopo
 un aggiornamento. Ogni release aggiunge qui la sua voce in cima (lo controlla un test)."""
 from . import __version__
+from .i18n import T
 
 CHANGES = (
-    ("0.1.3", ("**Spiegami lo schermo**: dal menu, o scrivendo in chat «cosa succede?», Hoppy "
-               "fotografa la finestra su cui stavi lavorando e Claude ti spiega cosa vede.",
-               "Dopo ogni aggiornamento Hoppy ti racconta le novità sulla lavagna.")),
-    ("0.1.2", ("**Cerca aggiornamenti**: dal menu, o scrivendo in chat «aggiornati».",)),
-    ("0.1.1", ("Apre le skill di Claude Code dalla chat («apri /nome-skill»).",
-               "Avvia da sola popup e inline; un solo collegamento di avvio automatico.",
-               "Si aggiorna da sola quando esce una versione nuova.")),
-    ("0.1.0", ("Prima versione.",)),
+    ("0.1.4", (T("**Parlo anche inglese**: scegli la lingua in Impostazioni > Mascotte > Lingua / Language."),)),
+    ("0.1.3", (T("**Spiegami lo schermo**: dal menu, o scrivendo in chat «cosa succede?», Hoppy "
+                 "fotografa la finestra su cui stavi lavorando e Claude ti spiega cosa vede."),
+               T("Dopo ogni aggiornamento Hoppy ti racconta le novità sulla lavagna."))),
+    ("0.1.2", (T("**Cerca aggiornamenti**: dal menu, o scrivendo in chat «aggiornati»."),)),
+    ("0.1.1", (T("Apre le skill di Claude Code dalla chat («apri /nome-skill»)."),
+               T("Avvia da sola popup e inline; un solo collegamento di avvio automatico."),
+               T("Si aggiorna da sola quando esce una versione nuova."))),
+    ("0.1.0", (T("Prima versione."),)),
 )
 
 
@@ -34,5 +36,6 @@ def to_show(seen, updated):
 
 def text(entries):
     """Testo per la lavagna (**grassetto** come gesso calcato)."""
-    return "\n\n".join(f"**Versione {v}**\n" + "\n".join("- " + i for i in items)
+    return "\n\n".join(T("**Versione {v}**").format(v=v) + "\n"
+                       + "\n".join("- " + i for i in items)
                        for v, items in entries)

@@ -11,7 +11,10 @@ e, se vuoi, ti aiuta a tenere in ordine desktop e disco.
 > affiliato ad Anthropic. È fatto per divertimento, può contenere errori e viene fornito
 > senza garanzie (vedi [LICENSE](LICENSE)). Lo usi a tuo rischio.
 
-L'interfaccia è in italiano.
+![Hoppy ti saluta, apre il menu e spiega alla lavagna un errore sullo schermo](docs/preview-it.gif)
+
+L'interfaccia è in italiano o in inglese (Impostazioni > *Mascotte* > *Lingua / Language*;
+di default quella di Windows) e Claude risponde nella stessa lingua.
 
 ## Cosa c'è dentro
 
@@ -160,7 +163,7 @@ e li apre con quel profilo.
 
 ## Limiti noti
 
-- Solo Windows, interfaccia solo in italiano.
+- Solo Windows; italiano e inglese.
 - La modalità riunione riconosce le call dal microfono in uso o da un'app a schermo intero:
   una condivisione dello schermo a microfono spento non la vede.
 - In `hoppy-inline` le lettere accentate ottenute coi tasti morti non vengono catturate.
@@ -176,7 +179,8 @@ python tests/run_all.py
 I test girano con le finestre nascoste e con dati e cartelle temporanei.
 
 Per pubblicare una versione: alza `__version__` in `hoppy/__init__.py`, scrivi le novità
-in cima a `hoppy/changelog.py` (Hoppy le mostra dopo l'aggiornamento), fai il commit, poi
+in cima a `hoppy/changelog.py` (Hoppy le mostra dopo l'aggiornamento) con il testo inglese
+in `hoppy/en.py`, fai il commit, poi
 `gh release create vX.Y.Z --notes "..."`. Il tag deve corrispondere alla versione.
 
 ## Licenza

@@ -17,6 +17,7 @@ import tkinter as tk
 
 from . import __version__
 from . import config as pc
+from .i18n import T
 
 COMMANDS_EXAMPLE = [{"nome": "esempio", "descrizione": "apre il Blocco note",
                      "comando": "notepad", "cartella": "~"}]
@@ -32,19 +33,20 @@ def open_file(path):
 
 # ---- testi del wizard ---------------------------------------------------------------------
 PAGES = (
-    ("Ciao!", f"Sono {pc.APP_NAME}: una mascotte che vive sul tuo desktop e ti porta Claude "
+    (T("Ciao!"), T("Sono {app}: una mascotte che vive sul tuo desktop e ti porta Claude "
      "a portata di clic.\n\n"
      "Cammina sulla barra delle applicazioni e sui bordi delle finestre, ti segue col mouse, "
      "si addormenta se la lasci sola, e ogni tanto ha fame.\n\n"
      "In questa breve presentazione ti dico cosa so fare, cosa mando a Claude e cosa vuoi "
-     "attivare. Puoi cambiare tutto in seguito: tasto destro su di me > Impostazioni."),
-    ("Un progetto hobbistico", "Questo è un progetto amatoriale, fatto per divertimento.\n\n"
+     "attivare. Puoi cambiare tutto in seguito: tasto destro su di me > Impostazioni.").format(
+        app=pc.APP_NAME)),
+    (T("Un progetto hobbistico"), T("Questo è un progetto amatoriale, fatto per divertimento.\n\n"
      "• Non è un prodotto di Anthropic e non è affiliato ad Anthropic.\n"
      "• Può contenere errori: non ha garanzie di nessun tipo.\n"
      "• Alcune funzioni (le pulizie, i comandi rapidi) spostano o eliminano file, o lanciano "
      "comandi: lo fanno solo dopo il tuo sì, ma controlla sempre cosa ti propongo.\n\n"
-     "Lo usi a tuo rischio. Se trovi un problema, segnalalo: mi aiuti a migliorare."),
-    ("Cosa so fare", "• Doppio clic su di me: chiacchieriamo. Ricordo il tuo nome e i tuoi "
+     "Lo usi a tuo rischio. Se trovi un problema, segnalalo: mi aiuti a migliorare.")),
+    (T("Cosa so fare"), T("• Doppio clic su di me: chiacchieriamo. Ricordo il tuo nome e i tuoi "
      "progetti, apro Claude Code su un progetto, imposto promemoria e timer.\n"
      "• Scrivi ;;domanda?? in qualunque programma: ti spiego la risposta su una lavagna. "
      "Con ;;istruzione;; trasformo il testo al posto tuo.\n"
@@ -53,15 +55,15 @@ PAGES = (
      "• Se copi un errore, posso spiegartelo.\n"
      "• Standup del mattino, cronologia degli appunti, riordino del desktop, pulizia delle "
      "build vecchie.\n"
-     "• E poi giochi: palla, nascondino, carezze, biscotti."),
-    ("Cosa mando a Claude", "Uso il tuo Claude Code (claude -p), col tuo account: niente "
+     "• E poi giochi: palla, nascondino, carezze, biscotti.")),
+    (T("Cosa mando a Claude"), T("Uso il tuo Claude Code (claude -p), col tuo account: niente "
      "chiavi da configurare.\n\n"
      "• A Claude va solo quello che serve alla domanda: il testo che scrivi o selezioni, e "
      "pochi pezzi pertinenti delle memorie dei tuoi progetti.\n"
      "• Le chiacchierate e la memoria restano in locale, in un file che puoi leggere.\n"
      "• La cronologia degli appunti resta solo in RAM e salta password e token.\n\n"
      "Ogni chiamata consuma credito del tuo abbonamento (per gli usi headless c'è un credito "
-     "mensile separato). Quanto spendo lo vedi nel mio menu."),
+     "mensile separato). Quanto spendo lo vedi nel mio menu.")),
 )
 CHOICES = ("sessions", "errors", "clip", "ram", "standup", "advice", "reactions", "meeting",
            "music", "desktop", "old", "dev", "m2")
@@ -72,8 +74,10 @@ PX_TEXT, PX_DIM, PX_YELLOW, PX_GREEN, PX_RED = "#F3EBD8", "#A99CC9", "#FFD166", 
 PX_OCTO, PX_OCTO_DARK, PX_CRAB, PX_EYE, PX_BLUSH = "#A77BD6", "#7E57B0", "#D97757", "#1F1E1D", "#F4A6A0"
 BODY_FONT = ("Consolas", 10)
 HELP_FONT = ("Consolas", 9)
-TITLES = ("CIAO!", "UN PROGETTO HOBBISTICO", "COSA SO FARE", "COSA MANDO A CLAUDE",
-          "COSA ATTIVO?", "TUTTO PRONTO!")
+TITLES = (T("CIAO!"), T("UN PROGETTO HOBBISTICO"), T("COSA SO FARE"), T("COSA MANDO A CLAUDE"),
+          T("COSA ATTIVO?"), T("TUTTO PRONTO!"))
+TAB_NAMES = {"Mascotte": T("Mascotte"), "Avvisi": T("Avvisi"), "Pulizie": T("Pulizie"),
+             "Avvio e file": T("Avvio e file")}            # nome mostrato delle schede (chiave = pc.TABS)
 ACCESSORY = ("wave", "helmet", "sparkles", "lock", "cheer", "hearts")
 GLYPHS = {     # font a blocchi 5x7
     "A": ".###.#...##...#######...##...##...#", "B": "####.#...##...#####.#...##...#####.",
@@ -335,7 +339,7 @@ class SettingsWindow(PixelWindow):
 
     def __init__(self, root, cfg, on_save, on_wizard):
         self.cfg, self.on_save, self.on_wizard = dict(cfg), on_save, on_wizard
-        super().__init__(root, f"{pc.APP_NAME} - Impostazioni")
+        super().__init__(root, T("{app} - Impostazioni").format(app=pc.APP_NAME))
         self.vars = {}
         for s in pc.SETTINGS:
             v = self.cfg[s.key]
@@ -350,8 +354,8 @@ class SettingsWindow(PixelWindow):
         self.tab = self.tabs[0]
         self.widgets, self.buttons = [], []
         self.note = Note(self.cv, 32, self.H - 46)
-        save = PixelButton(self.cv, self.W - 32, self.H - 66, "SALVA", self.save, primary=True)
-        PixelButton(self.cv, self.W - 48 - save.width, self.H - 66, "ANNULLA", self.close)
+        save = PixelButton(self.cv, self.W - 32, self.H - 66, T("SALVA"), self.save, primary=True)
+        PixelButton(self.cv, self.W - 48 - save.width, self.H - 66, T("ANNULLA"), self.close)
         self.t0 = time.time()
         self.render()
         self.animate()
@@ -376,11 +380,12 @@ class SettingsWindow(PixelWindow):
         self.widgets, self.buttons = [], []
         x = 24
         for t in self.tabs:                                  # linguette
-            w = len(t) * 12 + 24
+            name = TAB_NAMES.get(t, t)                       # t resta la chiave, name si mostra
+            w = len(name) * 12 + 24
             on = t == self.tab
             pixel_box(cv, x, 56 if on else 60, x + w, 92, PX_OCTO if on else PX_PANEL,
                       PX_EDGE if on else PX_DIM, ("content", f"tab_{t}"), b=2)
-            pixel_text(cv, x + 12, 66 if on else 70, t, 2, PX_TEXT if on else PX_DIM,
+            pixel_text(cv, x + 12, 66 if on else 70, name, 2, PX_TEXT if on else PX_DIM,
                        ("content", f"tab_{t}"))
             cv.tag_bind(f"tab_{t}", "<ButtonPress-1>", lambda e, t=t: self.switch(t))
             x += w + 6
@@ -422,7 +427,7 @@ class SettingsWindow(PixelWindow):
         cv, R = self.cv, self.W - 40
         sub = s.label.startswith("...")
         x0 = 64 if sub else 40
-        label = (s.label[3:] if sub else s.label) + ("  (al riavvio)" if s.restart else "")
+        label = (s.label[3:] if sub else s.label) + (T("  (al riavvio)") if s.restart else "")
         var = self.vars[s.key]
         if s.kind == "bool":
             self.checkbox(x0, y, label, var, s.key, extra_tags=("content",))
@@ -460,23 +465,24 @@ class SettingsWindow(PixelWindow):
 
     def files_tab(self):
         cv = self.cv
-        self.checkbox(40, 114, "Avvia Hoppy con Windows", self.autostart,
+        self.checkbox(40, 114, T("Avvia Hoppy con Windows"), self.autostart,
                       "autostart", PX_YELLOW, extra_tags=("content",))
-        cv.create_text(40, 154, anchor="w", text="Apri:", fill=PX_DIM, font=BODY_FONT, tags=("content",))
-        items = (("CARTELLA DATI", lambda: open_file(pc.DATA_DIR)),
+        cv.create_text(40, 154, anchor="w", text=T("Apri:"), fill=PX_DIM, font=BODY_FONT, tags=("content",))
+        items = ((T("CARTELLA DATI"), lambda: open_file(pc.DATA_DIR)),
                  ("CONFIG.JSON", self.open_config),
-                 ("COMANDI RAPIDI", self.open_commands),
-                 ("MEMORIA", lambda: open_file(pc.DATA_DIR / "pet_memory.json")),
-                 ("PROPOSTE", lambda: open_file(pc.DATA_DIR / "pet_proposals.md")),
-                 ("ISTRUZIONI", lambda: open_file(pc.README_URL)))
+                 (T("COMANDI RAPIDI"), self.open_commands),
+                 (T("MEMORIA"), lambda: open_file(pc.DATA_DIR / "pet_memory.json")),
+                 (T("PROPOSTE"), lambda: open_file(pc.DATA_DIR / "pet_proposals.md")),
+                 (T("ISTRUZIONI"), lambda: open_file(pc.README_URL)))
         for k, (label, cmd) in enumerate(items):
             x0, y = (40, 172 + (k % 3) * 50) if k < 3 else (330, 172 + (k % 3) * 50)
             self.buttons.append(PixelButton(cv, x0 + PixelButton.width_of(label), y, label, cmd))
-        cv.create_text(40, 340, anchor="w", text="Se modifichi config.json a mano, poi premi RICARICA.",
+        cv.create_text(40, 340, anchor="w", text=T("Se modifichi config.json a mano, poi premi RICARICA."),
                        fill=PX_DIM, font=BODY_FONT, tags=("content",))
-        for x0, label, cmd in ((40, "RICARICA", self.reload), (220, "RIVEDI LA PRESENTAZIONE", self.wizard)):
+        for x0, label, cmd in ((40, T("RICARICA"), self.reload), (220, T("RIVEDI LA PRESENTAZIONE"), self.wizard)):
             self.buttons.append(PixelButton(cv, x0 + PixelButton.width_of(label), 358, label, cmd))
-        cv.create_text(40, 440, anchor="w", text=f"Versione {__version__}  ·  dati in {pc.DATA_DIR}", fill=PX_DIM,
+        cv.create_text(40, 440, anchor="w", text=T("Versione {version}  ·  dati in {path}").format(
+                           version=__version__, path=pc.DATA_DIR), fill=PX_DIM,
                        font=HELP_FONT, tags=("content",))
 
     # --- azioni
@@ -522,7 +528,7 @@ class SettingsWindow(PixelWindow):
         try:
             new = self.collect()
         except ValueError as e:
-            self.note.config(text=f"Serve un numero in «{e}»", foreground=PX_RED)
+            self.note.config(text=T("Serve un numero in «{name}»").format(name=e), foreground=PX_RED)
             return
         if self.autostart.get() != pc.autostart_on():
             pc.set_autostart(self.autostart.get())
@@ -540,9 +546,9 @@ class Wizard(PixelWindow):
         super().__init__(root, pc.APP_NAME)
         cv = self.cv
         self.win.bind("<Return>", lambda e: "disabled" not in self.next_btn.state() and self.next())
-        self.next_btn = PixelButton(cv, self.W - 32, self.H - 66, "AVANTI", self.next, primary=True)
+        self.next_btn = PixelButton(cv, self.W - 32, self.H - 66, T("AVANTI"), self.next, primary=True)
         self.back_btn = PixelButton(cv, self.W - 48 - self.next_btn.width, self.H - 66,
-                                    "INDIETRO", self.back)
+                                    T("INDIETRO"), self.back)
         self.ok = tk.BooleanVar(value=bool(cfg.get("wizard_done")))
         self.picks = {k: tk.BooleanVar(value=self.cfg[k]) for k in CHOICES}
         self.autostart = tk.BooleanVar(value=pc.autostart_on())
@@ -571,7 +577,7 @@ class Wizard(PixelWindow):
             cv.create_text(40, 180, anchor="nw", text=PAGES[i][1].replace("•", "▪"), fill=PX_TEXT,
                            font=BODY_FONT, width=self.W - 80, tags=("page",))
             if i == 1:
-                self.checkbox(40, self.H - 132, "Ho capito: è un progetto hobbistico e lo uso a mio rischio",
+                self.checkbox(40, self.H - 132, T("Ho capito: è un progetto hobbistico e lo uso a mio rischio"),
                               self.ok, "accept", PX_YELLOW, self.update_buttons)
         elif i == len(PAGES):
             self.choices_page()
@@ -586,28 +592,28 @@ class Wizard(PixelWindow):
 
     def choices_page(self):
         self.cv.create_text(40, 172, anchor="nw", width=self.W - 80, font=BODY_FONT, fill=PX_DIM,
-                            tags=("page",), text="Quelle che toccano i tuoi file partono spente.")
+                            tags=("page",), text=T("Quelle che toccano i tuoi file partono spente."))
         y = 198
         for k in CHOICES:
             self.checkbox(40, y, pc.BY_KEY[k].label, self.picks[k], k)
             y += 21
-        self.checkbox(40, y + 6, "Avvia Hoppy con Windows", self.autostart, "autostart",
+        self.checkbox(40, y + 6, T("Avvia Hoppy con Windows"), self.autostart, "autostart",
                       PX_YELLOW)
 
     def last_page(self):
         ok = shutil.which("claude") or (pc.Path.home() / ".local/bin/claude.exe").exists()
-        text = ("Tasto destro su di me: il menu, con Impostazioni in fondo.\n"
-                "Doppio clic: parliamo.\n\n")
-        text += ("Ho trovato Claude Code: possiamo cominciare." if ok else
-                 "Attenzione: non trovo Claude Code (il comando claude). Installalo e fai il "
-                 "login, altrimenti non posso rispondere alle domande.")
+        text = T("Tasto destro su di me: il menu, con Impostazioni in fondo.\n"
+                 "Doppio clic: parliamo.\n\n")
+        text += (T("Ho trovato Claude Code: possiamo cominciare.") if ok else
+                 T("Attenzione: non trovo Claude Code (il comando claude). Installalo e fai il "
+                   "login, altrimenti non posso rispondere alle domande."))
         self.cv.create_text(40, 180, anchor="nw", text=text, width=self.W - 80, font=BODY_FONT,
                             fill=PX_TEXT if ok else PX_RED, tags=("page",))
 
     def update_buttons(self):
         self.back_btn.state(["!disabled"] if self.page else ["disabled"])
         last = self.page == self.n_pages() - 1
-        self.next_btn.config(text="FINE" if last else "AVANTI")
+        self.next_btn.config(text=T("FINE") if last else T("AVANTI"))
         self.next_btn.state(["disabled"] if self.page == 1 and not self.ok.get() else ["!disabled"])
         self.back_btn.x1 = self.next_btn.x1 - self.next_btn.width - 16   # sempre accanto
         self.back_btn.draw()

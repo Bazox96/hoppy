@@ -23,6 +23,8 @@ from collections import Counter
 from datetime import datetime
 from pathlib import Path
 
+from .i18n import T
+
 CLAUDE_PROJECTS = Path.home() / ".claude" / "projects"
 # secondo profilo di Claude Code (es. di lavoro): un'altra CLAUDE_CONFIG_DIR. Dalle Impostazioni.
 WORK_ENABLED = False
@@ -203,16 +205,17 @@ class Knowledge:
         mine = sorted((n for n, p in self.projects.items() if not self.is_work(p)), key=str.lower)
         work = sorted((n for n, p in self.projects.items() if self.is_work(p)), key=str.lower)
         if mine:
-            parts.append("I suoi progetti: " + ", ".join(mine) + ".")
+            parts.append(T("I suoi progetti: ") + ", ".join(mine) + ".")
         if work:
-            parts.append(f"I suoi progetti di {WORK_LABEL} (si aprono con "
-                         f"{WORK_LAUNCHER or 'il profilo ' + WORK_LABEL}): " + ", ".join(work) + ".")
+            launcher = WORK_LAUNCHER or T("il profilo {label}").format(label=WORK_LABEL)
+            parts.append(T("I suoi progetti di {label} (si aprono con {launcher}): ").format(
+                label=WORK_LABEL, launcher=launcher) + ", ".join(work) + ".")
         rec = self.recent_projects()
         if rec:
-            parts.append("Ultimamente ci lavora su: " + ", ".join(rec) + ".")
+            parts.append(T("Ultimamente ci lavora su: ") + ", ".join(rec) + ".")
         about = [d["body"][:300] for d in self.docs if d["type"] == "user"][:3]
         if about:
-            parts.append("Su di lui: " + " ".join(about))
+            parts.append(T("Su di lui: ") + " ".join(about))
         return " ".join(parts)
 
     def search(self, query, k=3, budget=4500):
@@ -246,7 +249,7 @@ class Knowledge:
         best = max(((n, p) for n, p in self.projects.items()
                     if c == os.path.normcase(p) or c.startswith(os.path.normcase(p) + os.sep)),
                    key=lambda np: len(np[1]), default=None)
-        return best[0] if best else (Path(cwd).name if cwd else "una sessione")
+        return best[0] if best else (Path(cwd).name if cwd else T("una sessione"))
 
     def skills(self):
         """Le skill dei profili di Claude Code: [(nome, descrizione, di lavoro?)]."""
@@ -257,7 +260,7 @@ class Knowledge:
 
     def skills_hint(self):
         """Le skill in una riga per il prompt (solo quando chiedi di aprire qualcosa)."""
-        return "; ".join(f"{n} ({WORK_LABEL if w else 'personale'}): {d}"
+        return "; ".join(f"{n} ({WORK_LABEL if w else T('personale')}): {d}"
                          for n, d, w in self.skills())
 
     def find_project(self, name):

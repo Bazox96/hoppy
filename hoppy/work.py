@@ -15,6 +15,7 @@ import subprocess
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+from .i18n import T
 from .knowledge import clean_env
 
 FORGOTTEN_DAYS = 2       # modifiche non committate ferme da almeno N giorni
@@ -142,25 +143,27 @@ def pending_lines(repos):
     out = []
     for r in repos:
         if r["dirty"] and r["dirty_age_d"] >= FORGOTTEN_DAYS:
-            out.append(f"{r['name']}: {r['dirty']} file modificati e non committati da "
-                       f"{round(r['dirty_age_d'])} giorni")
+            out.append(T("{name}: {dirty} file modificati e non committati da "
+                         "{days} giorni").format(name=r["name"], dirty=r["dirty"],
+                                                 days=round(r["dirty_age_d"])))
         if r["ahead"]:
-            out.append(f"{r['name']}: {r['ahead']} commit su {r['branch']} non ancora pushati")
+            out.append(T("{name}: {ahead} commit su {branch} non ancora pushati").format(
+                name=r["name"], ahead=r["ahead"], branch=r["branch"]))
     return out
 
 
 def standup_prompt(prompts, repos, since):
-    parts = [f"Ultimo giorno lavorativo: {since:%A %d/%m}."]
+    parts = [T("Ultimo giorno lavorativo: {since:%A %d/%m}.").format(since=since)]
     for name, items in sorted(prompts.items(), key=lambda kv: -len(kv[1])):
-        parts.append(f"Sessioni Claude Code su {name} ({len(items)} richieste): "
-                     + " | ".join(items[:4]))
+        parts.append(T("Sessioni Claude Code su {name} ({n} richieste): ").format(
+                     name=name, n=len(items)) + " | ".join(items[:4]))
     for r in repos:
         if r["commits"]:
-            parts.append(f"Commit su {r['name']}: " + " | ".join(r["commits"][:6]))
+            parts.append(T("Commit su {name}: ").format(name=r["name"]) + " | ".join(r["commits"][:6]))
     return "\n".join(parts)
 
 
-STANDUP_SYSTEM = (
+STANDUP_SYSTEM = T(
     "Scrivi lo standup del mattino di uno sviluppatore, in italiano, dai dati sotto. "
     "Tre sezioni brevi con titolo in grassetto (**Ieri**, **Oggi**, **Blocchi**): elenchi "
     "puntati con '- ', al massimo 5 punti per sezione, frasi corte in prima persona. "
@@ -221,4 +224,4 @@ def add_spending(data, usd, month=None):
 def spending_label(data, month=None):
     month = month or datetime.now().strftime("%Y-%m")
     m = data.get("spend", {}).get(month, {"usd": 0.0, "calls": 0})
-    return f"{m['usd']:.2f} $ · {m['calls']} chiamate"
+    return T("{usd:.2f} $ · {calls} chiamate").format(usd=m["usd"], calls=m["calls"])

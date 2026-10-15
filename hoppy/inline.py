@@ -36,6 +36,7 @@ import tkinter as tk
 from pathlib import Path
 
 from . import config as pet_config
+from .i18n import T
 
 # ---- configurazione ---------------------------------------------------------
 START = ";;"        # marcatore di apertura
@@ -45,13 +46,13 @@ MODEL = pet_config.load()["inline_model"]   # dalle Impostazioni della mascotte
 MAX_LEN = 2000      # caratteri massimi di una richiesta prima di annullare
 MAX_CONTEXT = 150_000  # caratteri massimi di documento inviati come contesto
 TIMEOUT_S = 180
-SYSTEM_PROMPT = (
+SYSTEM_PROMPT = T(
     "Sei un assistente integrato in un campo di testo su Windows. L'utente ti "
     "invia un'ISTRUZIONE. Rispondi SOLO con il testo risultante, pronto per "
     "essere inserito dove si trova il cursore: niente preamboli, spiegazioni, "
     "virgolette o markdown. Mantieni la lingua dell'istruzione. Sii conciso."
 )
-ASK_PROMPT = (
+ASK_PROMPT = T(
     "Sei un assistente integrato nel desktop di Windows. Ricevi il CONTENUTO del "
     "documento o della pagina che l'utente ha aperto e una sua DOMANDA. Rispondi "
     "alla domanda basandoti sul contenuto, in modo chiaro e ordinato, nella lingua "
@@ -341,13 +342,13 @@ def ask_claude(instruction, context=None):
     """context=None: modalità TRASFORMA. Stringa (anche vuota): modalità CHIEDI."""
     exe = shutil.which("claude") or str(Path.home() / ".local" / "bin" / "claude.exe")
     if not Path(exe).exists():
-        return None, "Eseguibile 'claude' non trovato nel PATH."
+        return None, T("Eseguibile 'claude' non trovato nel PATH.")
     if context is None:
-        system, prompt = SYSTEM_PROMPT, f"ISTRUZIONE:\n{instruction}"
+        system, prompt = SYSTEM_PROMPT, T("ISTRUZIONE:") + f"\n{instruction}"
     else:
         system = ASK_PROMPT
-        prompt = (f"CONTENUTO DEL DOCUMENTO:\n<<<\n{context[:MAX_CONTEXT]}\n>>>\n\n"
-                  f"DOMANDA:\n{instruction}")
+        prompt = (T("CONTENUTO DEL DOCUMENTO:") + f"\n<<<\n{context[:MAX_CONTEXT]}\n>>>\n\n"
+                  + T("DOMANDA:") + f"\n{instruction}")
     cmd = [exe, "-p", "--model", MODEL, "--output-format", "text",
            "--no-session-persistence", "--setting-sources", "",
            "--strict-mcp-config", "--tools", "", "--system-prompt", system]
@@ -356,7 +357,7 @@ def ask_claude(instruction, context=None):
                            text=True, encoding="utf-8", timeout=TIMEOUT_S,
                            cwd=tempfile.gettempdir(), creationflags=CREATE_NO_WINDOW)
     except subprocess.TimeoutExpired:
-        return None, f"Nessuna risposta entro {TIMEOUT_S}s."
+        return None, T("Nessuna risposta entro {secs}s.").format(secs=TIMEOUT_S)
     if r.returncode != 0:
         return None, (r.stderr or r.stdout or f"exit code {r.returncode}").strip()
     return r.stdout.strip(), None
@@ -376,7 +377,7 @@ class Chip:
         self.lbl = tk.Label(frame, text=text, bg="#1e1e1e",
                             fg="#cfcfcf", font=("Segoe UI", 9))
         self.lbl.pack(side="left", padx=6)
-        tk.Button(frame, text="Esci", command=on_quit, bg="#2b2b2b", fg="#cfcfcf",
+        tk.Button(frame, text=T("Esci"), command=on_quit, bg="#2b2b2b", fg="#cfcfcf",
                   relief="flat", font=("Segoe UI", 8), padx=6, cursor="hand2").pack(side="left")
         w.update_idletasks()
         bw, bh = w.winfo_reqwidth(), w.winfo_reqheight()
@@ -521,9 +522,9 @@ class Mascot:
         c.create_rectangle(cx - 12, bottom - 4, cx + 12, bottom + 1, fill=self.BUBBLE,
                            width=0, tags=("bubble",))
         q = question if len(question) <= 80 else question[:77] + "…"
-        head = f"Mi hai chiesto: «{q}»"
+        head = T("Mi hai chiesto: «{q}»").format(q=q)
         if context_len is not None:
-            head += f"   ·   ho letto {context_len} caratteri"
+            head += T("   ·   ho letto {context_len} caratteri").format(context_len=context_len)
         c.create_text(28, 20, anchor="nw", text=head, fill=self.DIM, font=("Segoe UI", 9),
                       width=W - 56, tags=("bubble",))
 
@@ -538,9 +539,9 @@ class Mascot:
 
         bar = tk.Frame(c, bg=self.BUBBLE)
         self.btns = []
-        for label, cmd, bg, fg in (("Incolla al cursore", self.paste, self.ORANGE, "white"),
-                                   ("Copia", self.copy, self.BTN2, self.INK),
-                                   ("Chiudi", self.leave, self.BUBBLE, self.DIM)):
+        for label, cmd, bg, fg in ((T("Incolla al cursore"), self.paste, self.ORANGE, "white"),
+                                   (T("Copia"), self.copy, self.BTN2, self.INK),
+                                   (T("Chiudi"), self.leave, self.BUBBLE, self.DIM)):
             b = tk.Button(bar, text=label, command=cmd, bg=bg, fg=fg, relief="flat", bd=0,
                           font=("Segoe UI", 9), padx=12, pady=4, cursor="hand2",
                           activebackground=bg, activeforeground=fg)
@@ -591,7 +592,7 @@ class Mascot:
                 d = int(t / 0.4) % 4
                 if d != self.dots:
                     self.dots = d
-                    msg = "Sto leggendo la pagina" if self.mode == "ask" else "Ci sto lavorando"
+                    msg = T("Sto leggendo la pagina") if self.mode == "ask" else T("Ci sto lavorando")
                     self._set_text([(msg + "." * d, "dim")])
             elif self.phase == "talk":
                 self._arms(int(t / 0.18) % 2 == 1)
@@ -682,7 +683,7 @@ class Mascot:
         self.root.clipboard_clear()
         self.root.clipboard_append(self.answer_plain)
         self.root.update()
-        self.status.config(text="Copiato")
+        self.status.config(text=T("Copiato"))
 
     def paste(self):
         self.root.clipboard_clear()
@@ -776,20 +777,20 @@ def main():
                     delegated = False
                     if link:                          # la risposta va alla mascotte da desktop
                         delegated = pet_send(link, t="answer", mode=mode, error=bool(err),
-                                             text=("Non ci sono riuscito: " + err) if err else res)
+                                             text=(T("Non ci sono riuscito: ") + err) if err else res)
                         link.close()
                     m = None if delegated else mascot_for(mode, text, prev_hwnd, context)
                     if err:
                         if mode == "transform":
                             type_unicode(START + text + END)  # ripristina ciò che avevi scritto
                         if m:
-                            m.answer("Non ci sono riuscito: " + err, error=True)
-                        chip.set("Errore", "#e06c6c")
+                            m.answer(T("Non ci sono riuscito: ") + err, error=True)
+                        chip.set(T("Errore"), "#e06c6c")
                         root.after(2500, lambda: chip.set(idle_text, "#5fb85f"))
                     elif mode == "transform":
                         paste_via_clipboard(root, res)
                         if m:
-                            m.answer("Fatto!", then_leave=True)
+                            m.answer(T("Fatto!"), then_leave=True)
                         chip.set(idle_text, "#5fb85f")
                     else:
                         if m:
@@ -797,7 +798,7 @@ def main():
                         chip.set(idle_text, "#5fb85f")
                     listener.busy = False
                 elif kind == "fatal":
-                    chip.set("Hook non attivo", "#e06c6c")
+                    chip.set(T("Hook non attivo"), "#e06c6c")
         except queue.Empty:
             pass
         root.after(40, poll)

@@ -19,6 +19,8 @@ import shutil
 import time
 from pathlib import Path
 
+from .i18n import T
+
 RECENT_DAYS = 7          # i file toccati da poco restano dove sono: ci stai lavorando
 OLD_DAYS = 180           # "vecchio e non usato": niente modifiche né aperture da 6 mesi
 REVIEW_DIR = "Da rivedere"
@@ -272,4 +274,4 @@ def delete_dirs(items):
 
 
 def size_label(n):
-    return f"{n / 2**30:.1f} GB" if n >= 2**30 else f"{n / 2**20:.0f} MB" if n >= 2**20 else "pochi KB"
+    return f"{n / 2**30:.1f} GB" if n >= 2**30 else f"{n / 2**20:.0f} MB" if n >= 2**20 else T("pochi KB")

@@ -66,6 +66,7 @@ from . import update as pet_update
 from . import watch as pet_watch
 from . import work as pet_work
 from .chores import ChoreLog, known_folder, size_label
+from .i18n import T
 from .knowledge import Knowledge, Sessions, clean_env, launch_claude, norm, project_roots
 
 # ---- configurazione ---------------------------------------------------------
@@ -107,15 +108,15 @@ MAX_LINE = 65536            # tetto alla lunghezza di una riga ricevuta sul sock
 FRAME_MS = 33
 
 CHARACTER = "octopus"       # "octopus" (Hoppy, il polipetto) o "crab" (il granchietto)
-WHO = {"octopus": "Hoppy, un polipetto viola", "crab": "un granchietto arancione"}
-PERSONA = (
+WHO = {"octopus": T("Hoppy, un polipetto viola"), "crab": T("un granchietto arancione")}
+PERSONA = T(
     "Sei {who}, la mascotte che vive sul desktop di {user} e gli porta Claude a portata di clic. "
     "Parli in prima persona, in italiano, con tono caldo, curioso e un po' giocoso. "
     "Sei breve: una o due frasi, mai elenchi. Non inventare fatti personali sull'utente: "
     "usa solo quello che trovi in COSA RICORDO, PROGETTI, DIARIO, MEMORIE e CONVERSAZIONI "
     "PASSATE. Non dare consigli medici o finanziari seri."
 )
-LAUNCH_HINT = (
+LAUNCH_HINT = T(
     "Se l'utente ti chiede di aprire o avviare Claude (Claude Code) su uno dei suoi progetti, "
     "rispondi in breve e aggiungi come ultimissima riga '#AVVIA: <nome del progetto, scritto "
     "esattamente come in uno degli elenchi dei suoi progetti, personali o di lavoro>'. "
@@ -124,13 +125,13 @@ LAUNCH_HINT = (
     "es. il codice del ticket>' (con #AVVIA solo se nomina anche un progetto)."
 )
 LAUNCH_WORDS = ("avvia", "avviami", "apri", "aprimi", "lancia", "lanciami", "fai partire",
-                "start", "open")
-REMEMBER_HINT = (
+                "start", "open", "launch", "run", "fire up")
+REMEMBER_HINT = T(
     "Se l'utente ti dice qualcosa che vale la pena ricordare (il suo nome, una preferenza, "
     "un progetto, un gusto), aggiungi come ultimissima riga '#RICORDA: <fatto in poche parole>'. "
     "Se ti dice come si chiama, usa '#NOME: <nome>'. Altrimenti non aggiungere nulla."
 )
-REMIND_HINT = (
+REMIND_HINT = T(
     "Adesso è {now}. Se l'utente ti chiede di ricordargli qualcosa a un'ora o in un giorno "
     "precisi, aggiungi come ultima riga '#PROMEMORIA: AAAA-MM-GG HH:MM | <cosa ricordare>'. "
     "Se chiede un timer o un pomodoro (pomodoro = 25 minuti), aggiungi '#TIMER: <minuti> | "
@@ -167,8 +168,8 @@ GOGGLE_STRAP, GOGGLE_LENS = "#6D4C41", "#BDE7F2"   # occhialoni da aviatore (raz
 FLAME = ("#FFF3B0", "#FFC233", "#FF7A1A")
 TELE, TELE_SOFT = "#9B4DCA", "#D7B4F0"
 POWERS = ("web", "rockets", "telekinesis")
-POWER_NAMES = {"random": "Casuale", "web": "Ragnatela", "rockets": "Razzi",
-               "telekinesis": "Telecinesi"}
+POWER_NAMES = {"random": T("Casuale"), "web": T("Ragnatela"), "rockets": T("Razzi"),
+               "telekinesis": T("Telecinesi")}
 MENU_BG, MENU_FG, MENU_BORDER, MENU_RED = "#FAF9F5", "#1F1E1D", "#D97757", "#B3261E"
 HEART, BLUSH = "#E8577A", "#F4A6A0"
 COOKIE, COOKIE_EDGE, CHIP = "#C68B59", "#8B5A2B", "#4E342E"
@@ -270,7 +271,7 @@ def ask_claude(prompt, system, timeout=90, image=None):
     image: PNG da fargli guardare insieme al testo."""
     exe = shutil.which("claude") or str(Path.home() / ".local" / "bin" / "claude.exe")
     if not Path(exe).exists():
-        return None, "CLI 'claude' non trovata"
+        return None, T("CLI 'claude' non trovata")
     cmd = [exe, "-p", "--model", MODEL, "--output-format", "json",
            "--no-session-persistence", "--setting-sources", "", "--strict-mcp-config",
            "--tools", "", "--system-prompt", system]
@@ -380,21 +381,21 @@ class Brain:
         self.mood = max(0.0, min(1.0, self.mood + delta))
 
     def mood_label(self):
-        return ("giù di morale" if self.mood < 0.3 else
-                "tranquilla" if self.mood < 0.55 else
-                "di buon umore" if self.mood < 0.8 else "euforica")
+        return (T("giù di morale") if self.mood < 0.3 else
+                T("tranquilla") if self.mood < 0.55 else
+                T("di buon umore") if self.mood < 0.8 else T("euforica"))
 
     def context(self):
         parts = []
         if self.name:
-            parts.append(f"L'utente si chiama {self.name}.")
+            parts.append(T("L'utente si chiama {name}.").format(name=self.name))
         if self.data.get("facts"):
-            parts.append("So queste cose: " + " ; ".join(self.data["facts"][-8:]))
+            parts.append(T("So queste cose: ") + " ; ".join(self.data["facts"][-8:]))
         liked = sorted(self.data.get("advice_up", {}).items(), key=lambda kv: -kv[1])
         if liked:
-            parts.append("Consigli graditi in passato: "
+            parts.append(T("Consigli graditi in passato: ")
                          + ", ".join(k for k, _ in liked[:3]) + ".")
-        return " ".join(parts) or "Non so ancora nulla di lei."
+        return " ".join(parts) or T("Non so ancora nulla di lei.")
 
     @staticmethod
     def parse_tags(text):
@@ -647,8 +648,8 @@ class Blackboard:
         legs = 34
         self.left = (wa.left + wa.right) / 2 - w / 2 + 50   # coordinate globali
         self.spot_x = self.left - 40                          # dove si mette la mascotte
-        L, T = self.left - mon.ox, wa.bottom - legs - h - mon.oy
-        R, B = L + w, T + h
+        L, Tp = self.left - mon.ox, wa.bottom - legs - h - mon.oy
+        R, B = L + w, Tp + h
         tg = ("board",)
         if ang:                                              # statue ai lati dello studio
             floor = wa.bottom - mon.oy
@@ -657,23 +658,23 @@ class Blackboard:
                 draw_statue(c, R + 34, floor, tg)
         for lx in (L + 40, R - 40):                          # gambe
             c.create_rectangle(lx - 5, B, lx + 5, B + legs, fill=frame, width=0, tags=tg)
-        c.create_rectangle(L, T, R, B, fill=frame, width=0, tags=tg)                # cornice
+        c.create_rectangle(L, Tp, R, B, fill=frame, width=0, tags=tg)               # cornice
         if ang:
-            c.create_rectangle(L + 6, T + 6, R - 6, B - 6, outline=STUDIO_GOLD, width=2, tags=tg)
-        c.create_rectangle(L + 10, T + 10, R - 10, B - 10, fill=bg, width=0, tags=tg)
+            c.create_rectangle(L + 6, Tp + 6, R - 6, B - 6, outline=STUDIO_GOLD, width=2, tags=tg)
+        c.create_rectangle(L + 10, Tp + 10, R - 10, B - 10, fill=bg, width=0, tags=tg)
         if not ang:
             c.create_rectangle(L + 24, B - 4, R - 24, B + 5, fill=BOARD_LEDGE, width=0, tags=tg)
             c.create_rectangle(R - 80, B - 9, R - 58, B - 4, fill=CHALK, width=0, tags=tg)  # gesso
         q = question if len(question) <= 70 else question[:67] + "…"
-        head = f"Domanda: «{q}»"
+        head = T("Domanda: «{q}»").format(q=q)
         if ctx_len is not None:
-            head += f"   ·   ho letto {ctx_len} caratteri"
-        c.create_text(L + 26, T + 20, anchor="nw", text=head, fill=dim,
+            head += T("   ·   ho letto {ctx_len} caratteri").format(ctx_len=ctx_len)
+        c.create_text(L + 26, Tp + 20, anchor="nw", text=head, fill=dim,
                       font=(font, 9, "italic") if ang else (font, 9), width=w - 150, tags=tg)
-        c.create_text(R - 24, T + 16, anchor="ne", text="⚛" if ang else "E = mc²",
+        c.create_text(R - 24, Tp + 16, anchor="ne", text="⚛" if ang else "E = mc²",
                       fill=STUDIO_GOLD if ang else dim,
                       font=("Segoe UI Symbol", 16) if ang else (font, 12), tags=tg)
-        c.create_line(L + 26, T + 54, R - 26, T + 54, fill=STUDIO_GOLD if ang else dim,
+        c.create_line(L + 26, Tp + 54, R - 26, Tp + 54, fill=STUDIO_GOLD if ang else dim,
                       dash=() if ang else (4, 4), tags=tg)
 
         t = self.txt = tk.Text(c, wrap="word", bg=bg, fg=fg, relief="flat", bd=0,
@@ -683,13 +684,13 @@ class Blackboard:
         t.tag_configure("err", foreground=err)
         t.tag_configure("dim", foreground=dim)
         t.bind("<Button-1>", lambda e: self.skip())
-        self.win_id = c.create_window(L + 26, T + 62, anchor="nw", window=t, width=w - 52,
+        self.win_id = c.create_window(L + 26, Tp + 62, anchor="nw", window=t, width=w - 52,
                                       height=h - 62 - 58, tags=tg)
         self.bar = bar = tk.Frame(c, bg=bg)
         self.btns = []
-        for label, cmd, bbg in (("Incolla al cursore", self.paste, frame),
-                                ("Copia", self.copy, "#3B4A6B" if ang else "#6D4C41"),
-                                ("Chiudi", self.close, "#5A4A2A" if ang else "#3E5B47")):
+        for label, cmd, bbg in ((T("Incolla al cursore"), self.paste, frame),
+                                (T("Copia"), self.copy, "#3B4A6B" if ang else "#6D4C41"),
+                                (T("Chiudi"), self.close, "#5A4A2A" if ang else "#3E5B47")):
             b = tk.Button(bar, text=label, command=cmd, bg=bbg, fg=fg, relief="flat", bd=0,
                           font=("Segoe UI", 9), padx=12, pady=4, cursor="hand2",
                           activebackground=bbg, activeforeground=fg)
@@ -739,7 +740,7 @@ class Blackboard:
                 d = int(now / 0.4) % 4
                 if d != self.dots:
                     self.dots = d
-                    self.set_text([("Mmm, fammi pensare" + "." * d, "dim")])
+                    self.set_text([(T("Mmm, fammi pensare") + "." * d, "dim")])
         elif self.phase == "talk" and self.pet.state == "lecture":
             self.write(max(3, len(self.chars) // 150))
 
@@ -795,7 +796,7 @@ class Blackboard:
         root.clipboard_clear()
         root.clipboard_append(self.plain)
         root.update()
-        self.status.config(text="Copiato")
+        self.status.config(text=T("Copiato"))
 
     def paste(self):
         self.copy()
@@ -1137,14 +1138,14 @@ class Pet:
             return
         H = self.hide
         if H:                                # nascondino: va al nascondiglio e si acquatta
-            m, T = self.hide_spot(H)         # la finestra può essersi spostata
+            m, Tp = self.hide_spot(H)        # la finestra può essersi spostata
             if not m:
                 self.hide = None
                 return
-            if T is not H["T"]:
-                H["x"] = min(max(H["x"] + T[2] - H["T"][2], T[2] + MARGIN), T[3] - MARGIN)
-                H["mon"], H["T"] = m, T
-            if self.mon is H["mon"] and abs(self.y - T[1]) <= 2:
+            if Tp is not H["T"]:
+                H["x"] = min(max(H["x"] + Tp[2] - H["T"][2], Tp[2] + MARGIN), Tp[3] - MARGIN)
+                H["mon"], H["T"] = m, Tp
+            if self.mon is H["mon"] and abs(self.y - Tp[1]) <= 2:
                 if abs(self.x - H["x"]) <= 6:
                     self.bubble = None       # il fumetto la tradirebbe
                     return self.set_state("hide", now)
@@ -1152,14 +1153,14 @@ class Pet:
                                              # fa uscire lontano dagli angoli, mai sul punto)
             if H.setdefault("portals", 0) >= 3:  # non riesce ad arrivarci: lascia perdere
                 self.hide = None
-                return self.set_bubble("chat", "Non trovo un buon nascondiglio... giochiamo dopo?")
+                return self.set_bubble("chat", T("Non trovo un buon nascondiglio... giochiamo dopo?"))
             if now >= self.portal_ready:
                 H["portals"] += 1
                 return self.start_portal(now, H["mon"], H["T"], H["x"])
             return
         if self.meeting:                     # in riunione: si mette zitta nell'angolo
-            T = self.mon.plats[0]
-            return self.plan_to(now, T[3] - MARGIN, T[1], self.mon)
+            Tp = self.mon.plats[0]
+            return self.plan_to(now, Tp[3] - MARGIN, Tp[1], self.mon)
         f = self.food
         if f and f["state"] == "rest":       # il cibo per terra ha la precedenza
             if (f["mon"] is self.mon and abs(f["y"] - self.y) <= 3
@@ -1311,7 +1312,7 @@ class Pet:
                 self.begin_lecture(now, cid, msg)
             else:
                 self.work_id = cid
-                self.say("Ci lavoro…", None)
+                self.say(T("Ci lavoro…"), None)
         elif msg.get("t") == "answer":
             L = self.lecture
             if L and L.cid == cid:
@@ -1319,9 +1320,9 @@ class Pet:
             elif cid == self.work_id:
                 self.work_id = None
                 if msg.get("error"):
-                    self.say("Ops, non ci sono riuscito", now + 2.5)
+                    self.say(T("Ops, non ci sono riuscito"), now + 2.5)
                 else:
-                    self.say("Fatto!", now + 1.6)
+                    self.say(T("Fatto!"), now + 1.6)
                     for _ in range(3):
                         self.add_heart()
 
@@ -1790,7 +1791,7 @@ class Pet:
         self.sessions.forget()                   # e le trascrizioni in pet_sessions/
         self.chat_hist.clear()
         self.session_id, self.diary_due, self.diary_done, self.diary_sid = None, set(), {}, None
-        self.set_bubble("chat", "Ho dimenticato tutto. Piacere, come ti chiami?", cat=None)
+        self.set_bubble("chat", T("Ho dimenticato tutto. Piacere, come ti chiami?"), cat=None)
 
     # ---- vita: umore, bisogni, consigli ----------------------------------------
     def working_min(self, now):
@@ -1876,29 +1877,33 @@ class Pet:
             names = ", ".join(m[0].name for m in moves[:3]) + (", ..." if n > 3 else "")
             if kind == "desktop":
                 months = sorted({m[1].parent.name for m in moves})
-                text = (f"Sul desktop ci sono {n} file sparsi ({names}). Li metto in "
-                        f"{len(months)} cartelle per mese, da {months[0]} a {months[-1]}?")
+                text = T("Sul desktop ci sono {n} file sparsi ({names}). Li metto in "
+                         "{months} cartelle per mese, da {first} a {last}?").format(
+                    n=n, names=names, months=len(months), first=months[0], last=months[-1])
             elif kind == "dev":
                 big = sorted(moves, key=lambda m: -m[2])[:3]
                 names = ", ".join(f"{m[0].parent.name}\\{m[0].name}" for m in big)
-                text = (f"Ci sono {n} cartelle di build di progetti fermi da 2 mesi: {size} "
-                        f"da liberare ({names}...). Le elimino? Si rigenerano con npm install / mvn.")
+                text = T("Ci sono {n} cartelle di build di progetti fermi da 2 mesi: {size} "
+                         "da liberare ({names}...). Le elimino? Si rigenerano con npm install / mvn."
+                         ).format(n=n, size=size, names=names)
             elif kind == "m2":
-                text = (f"Nella cache di Maven (.m2) ci sono {n} versioni di librerie non usate "
-                        f"da 6 mesi: {size}. Le elimino? Se servono, Maven le riscarica.")
+                text = T("Nella cache di Maven (.m2) ci sono {n} versioni di librerie non usate "
+                         "da 6 mesi: {size}. Le elimino? Se servono, Maven le riscarica.").format(
+                    n=n, size=size)
             else:
-                text = (f"Ho trovato {n} file non usati da 6 mesi fra Desktop e Download "
-                        f"({size}: {names}). Li sposto nelle cartelle «Da rivedere»?")
+                text = T("Ho trovato {n} file non usati da 6 mesi fra Desktop e Download "
+                         "({size}: {names}). Li sposto nelle cartelle «Da rivedere»?").format(
+                    n=n, size=size, names=names)
             self.set_bubble("ask", text, thumbs=True)
             self.bubble["chore"] = (kind, moves)
             return
         if manual and self.dev_found is None:
             if not self.dev_busy:
                 self.scan_dev()
-            self.set_bubble("chat", "Desktop e Download sono in ordine! Ora cerco build vecchie "
-                                    "nei progetti: ci metto un paio di minuti, poi ti dico.")
+            self.set_bubble("chat", T("Desktop e Download sono in ordine! Ora cerco build vecchie "
+                                      "nei progetti: ci metto un paio di minuti, poi ti dico."))
         elif manual:
-            self.set_bubble("chat", "Ho controllato: è tutto in ordine!")
+            self.set_bubble("chat", T("Ho controllato: è tutto in ordine!"))
 
     def scan_dev(self):
         """Cerca (in un thread: ci vuole qualche minuto) build vecchie e cache Maven."""
@@ -1914,34 +1919,35 @@ class Pet:
         if not yes:
             self.brain.data.setdefault("chores_snooze", {})[kind] = time.time()
             self.brain.save()
-            return self.set_bubble("chat", "Va bene, lascio tutto com'è.")
+            return self.set_bubble("chat", T("Va bene, lascio tutto com'è."))
         if kind in ("dev", "m2"):            # eliminazione vera: niente "Annulla" possibile
             self.dev_found[kind] = []
-            self.say("Faccio spazio…", None)
+            self.say(T("Faccio spazio…"), None)
 
             def worker():
                 self.work_q.put(("deleted", (kind, *pet_chores.delete_dirs(moves))))
             threading.Thread(target=worker, daemon=True).start()
-            return self.set_bubble("chat", "Ci penso io, ci vorrà un po'.")
+            return self.set_bubble("chat", T("Ci penso io, ci vorrà un po'."))
         done, failed = pet_chores.apply(moves)
         if done:
             self.chores.add(kind, done)
-        text = f"Fatto! Ho spostato {len(done)} file."
+        text = T("Fatto! Ho spostato {n} file.").format(n=len(done))
         if failed:
-            text += f" {failed} non li ho potuti toccare (forse sono aperti)."
+            text += T(" {failed} non li ho potuti toccare (forse sono aperti).").format(failed=failed)
         if done:
-            text += " Se cambi idea: menu > Annulla pulizie."
+            text += T(" Se cambi idea: menu > Annulla pulizie.")
         self.set_bubble("chat", text)
 
     def undo_chores(self, _e=None):
         self.menu_until = 0.0
         last = self.chores.pop()
         if not last:
-            return self.set_bubble("chat", "Non ho pulizie da annullare.")
+            return self.set_bubble("chat", T("Non ho pulizie da annullare."))
         back, failed = pet_chores.undo(last["moves"])
-        text = f"Rimesso a posto: {back} file tornati dov'erano (pulizie del {last['t']})."
+        text = T("Rimesso a posto: {back} file tornati dov'erano (pulizie del {t}).").format(
+            back=back, t=last['t'])
         if failed:
-            text += f" {failed} non li ho trovati più."
+            text += T(" {failed} non li ho trovati più.").format(failed=failed)
         self.set_bubble("chat", text)
 
     # ---- lavori lunghi finiti in un thread ------------------------------------------
@@ -1951,19 +1957,21 @@ class Pet:
         elif kind == "deleted":
             what, freed, failed = data
             self.say(None, 0)
-            text = f"Fatto! Ho liberato {size_label(freed)}."
+            text = T("Fatto! Ho liberato {size}.").format(size=size_label(freed))
             if failed:
-                text += f" {failed} cartelle non sono riuscita a toglierle (file in uso?)."
+                text += T(" {failed} cartelle non sono riuscita a toglierle (file in uso?).").format(
+                    failed=failed)
             self.set_bubble("chat", text)
         elif kind == "standup":
             board, text, err, pending = data
             self.standup_busy = False
             if pending:
-                text = (text or "") + "\n\n**In sospeso**\n" + "\n".join("- " + p for p in pending)
-            board.answer(text or "Non ho trovato niente di ieri da raccontare.", bool(err) and not pending)
+                text = ((text or "") + "\n\n**" + T("In sospeso") + "**\n"
+                        + "\n".join("- " + p for p in pending))
+            board.answer(text or T("Non ho trovato niente di ieri da raccontare."), bool(err) and not pending)
         elif kind == "explain":
             board, text, err = data
-            board.answer(text or ("Non sono riuscita a capirlo: " + (err or "")), bool(err))
+            board.answer(text or (T("Non sono riuscita a capirlo: ") + (err or "")), bool(err))
         elif kind == "update":
             self.offer_update(now, data)
         elif kind == "update_now":
@@ -1973,17 +1981,17 @@ class Pet:
     def check_update_now(self, _e=None):
         """Chiesto da te (chat o menu): controlla subito, anche le versioni a cui hai detto no."""
         self.menu_until = 0.0
-        self.set_bubble("chat", "Controllo se c'è una versione nuova...")
+        self.set_bubble("chat", T("Controllo se c'è una versione nuova..."))
         threading.Thread(target=lambda: self.work_q.put(("update_now", pet_update.latest())),
                          daemon=True).start()
 
     def offer_update(self, now, tag, manual=False):
         """È uscita una versione nuova: chiede se installarla (da sola, una volta per versione)."""
         if manual and not tag:
-            return self.set_bubble("chat", "Non riesco a controllare adesso: riprova più tardi.")
+            return self.set_bubble("chat", T("Non riesco a controllare adesso: riprova più tardi."))
         if manual and not pet_update.is_newer(tag):
-            return self.set_bubble("chat", "Sono già all'ultima versione "
-                                           f"({pet_update.__version__}).")
+            return self.set_bubble("chat", T("Sono già all'ultima versione "
+                                             "({version}).").format(version=pet_update.__version__))
         if not tag or not pet_update.is_newer(tag) or (
                 not manual and self.brain.data.get("update_skip") == tag):
             return
@@ -1994,23 +2002,24 @@ class Pet:
         if not pet_update.installed():       # gira dai sorgenti: basta dirlo
             self.brain.data["update_skip"] = tag
             self.brain.save()
-            return self.set_bubble("chat", f"È uscita la versione {version}! La trovi su "
-                                           f"github.com/{pet_update.REPO}")
-        self.set_bubble("ask", f"È uscita la versione {version}! La installo? Mi chiudo un "
-                               "attimo e torno da sola.", thumbs=True)
+            return self.set_bubble("chat", T("È uscita la versione {version}! La trovi su "
+                                             "github.com/{repo}").format(version=version,
+                                                                         repo=pet_update.REPO))
+        self.set_bubble("ask", T("È uscita la versione {version}! La installo? Mi chiudo un "
+                                 "attimo e torno da sola.").format(version=version), thumbs=True)
         self.bubble["update"] = tag
 
     def do_update(self, tag, yes):
         if not yes:
             self.brain.data["update_skip"] = tag
             self.brain.save()
-            return self.set_bubble("chat", "Va bene, te lo richiedo alla prossima versione.")
+            return self.set_bubble("chat", T("Va bene, te lo richiedo alla prossima versione."))
         running = ["hoppy.pet"] + [m for m in ("hoppy.inline", "hoppy.popup")
                                    if pet_config.is_running(m)]
         pet_update.start(tag, running, clean_env())
         pet_config.request_quit()            # anche popup e inline si chiudono
         self.brain.save()
-        self.set_bubble("chat", "Mi aggiorno! Torno fra un minuto.")
+        self.set_bubble("chat", T("Mi aggiorno! Torno fra un minuto."))
         self.root.after(1500, self.root.destroy)
 
     # ---- guardiano della RAM (memoria che cresce con giorni di accensione) ---------------
@@ -2018,27 +2027,29 @@ class Pet:
         s = self.sys_status = pet_watch.system_status()
         why = []
         if s["uptime_h"] >= RAM_UPTIME_H:
-            why.append(f"il PC è acceso da {int(s['uptime_h'])} ore")
+            why.append(T("il PC è acceso da {hours} ore").format(hours=int(s['uptime_h'])))
         if s["commit_pct"] >= RAM_COMMIT_PCT:
-            why.append(f"la memoria impegnata è al {s['commit_pct']:.0f}%")
+            why.append(T("la memoria impegnata è al {pct:.0f}%").format(pct=s['commit_pct']))
         if s["nonpaged_gb"] >= RAM_NONPAGED_GB:
-            why.append(f"la memoria del kernel è a {s['nonpaged_gb']:.1f} GB")
+            why.append(T("la memoria del kernel è a {gb:.1f} GB").format(gb=s['nonpaged_gb']))
         urgent = s["commit_pct"] >= 92
         if not why or not FEAT_RAM or self.meeting or now - self.last_ram_warn < (1800 if urgent else RAM_REPEAT_S):
             return
         self.last_ram_warn = now
         self.summon(now)
-        self.set_bubble("need", "Attenzione: " + " e ".join(why) + ". Un riavvio libera "
-                        "la memoria: " + ("riavvia appena puoi!" if urgent
-                                                 else "a fine giornata riavviamo?"))
+        self.set_bubble("need", T("Attenzione: ") + T(" e ").join(why) + T(". Un riavvio libera "
+                        "la memoria: ") + (T("riavvia appena puoi!") if urgent
+                                           else T("a fine giornata riavviamo?")))
 
     def on_pc_info(self, _e=None):
         self.menu_until = 0.0
         s = self.sys_status or pet_watch.system_status()
-        self.set_bubble("chat", f"PC acceso da {s['uptime_h']:.1f} ore. Memoria impegnata "
-                        f"{s['commit_gb']:.0f} su {s['limit_gb']:.0f} GB ({s['commit_pct']:.0f}%), "
-                        f"memoria del kernel {s['nonpaged_gb']:.1f} GB. Io questo mese ho speso "
-                        + pet_work.spending_label(self.brain.data) + " di credito.")
+        self.set_bubble("chat", T("PC acceso da {hours:.1f} ore. Memoria impegnata "
+                                  "{commit:.0f} su {limit:.0f} GB ({pct:.0f}%), "
+                                  "memoria del kernel {kernel:.1f} GB. Io questo mese ho speso "
+                                  "{spent} di credito.").format(
+            hours=s['uptime_h'], commit=s['commit_gb'], limit=s['limit_gb'], pct=s['commit_pct'],
+            kernel=s['nonpaged_gb'], spent=pet_work.spending_label(self.brain.data)))
 
     # ---- riunioni ----------------------------------------------------------------------
     # ---- impostazioni ------------------------------------------------------------------
@@ -2063,11 +2074,13 @@ class Pet:
             self.meeting_call = False        # spegnendola a metà call: niente "Fine call!"
         self.check_meeting(time.time())
         if any(old[s.key] != cfg[s.key] for s in pet_config.SETTINGS if s.restart):
-            self.set_bubble("chat", "Mi riavvio per le nuove impostazioni...")
+            self.set_bubble("chat", T("Mi riavvio per le nuove impostazioni..."))
+            if old["lang"] != cfg["lang"]:
+                pet_config.request_quit()    # anche popup e inline: ripartono nella nuova lingua
             pet_config.restart_pet(clean_env())
             self.root.after(1200, self.root.destroy)
         else:
-            self.set_bubble("chat", "Impostazioni salvate!")
+            self.set_bubble("chat", T("Impostazioni salvate!"))
 
     def toggle_meeting_mode(self, _e):
         cfg = pet_config.load()
@@ -2100,8 +2113,8 @@ class Pet:
             return
         if FEAT_REACTIONS and self.meeting_call and now - self.meeting_since >= 300:   # fine call
             late = datetime.now().hour * 60 + datetime.now().minute >= 17 * 60 + 30
-            self.set_bubble("need", "Fine call! Ultima della giornata?" if late
-                            else "Fine call! Com'è andata?")
+            self.set_bubble("need", T("Fine call! Ultima della giornata?") if late
+                            else T("Fine call! Com'è andata?"))
             self.set_state("happy", now)
             self.happy_until = now + 1.5
             for _ in range(3):
@@ -2113,8 +2126,8 @@ class Pet:
             if (kind, name) not in self.after_meeting:
                 self.after_meeting.append((kind, name))
             return
-        text = (f"«{name}» ha finito!" if kind == "done"
-                else f"«{name}» forse aspetta un tuo permesso.")
+        text = (T("«{name}» ha finito!") if kind == "done"
+                else T("«{name}» forse aspetta un tuo permesso.")).format(name=name)
         self.summon(now)
         if self.bubble and (self.bubble["kind"] in ("ask", "remind", "wait")
                             or self.talk_win is not None):
@@ -2129,18 +2142,18 @@ class Pet:
                 or (self.bubble and self.bubble["kind"] in ("ask", "remind"))):
             return
         self.last_err_text = text
-        self.set_bubble("ask", "Hai copiato un errore: te lo spiego sulla lavagna?", thumbs=True)
+        self.set_bubble("ask", T("Hai copiato un errore: te lo spiego sulla lavagna?"), thumbs=True)
         self.bubble["explain"] = text
 
     def explain_error(self, now, text):
-        first = next((ln.strip() for ln in text.splitlines() if ln.strip()), "Errore")
+        first = next((ln.strip() for ln in text.splitlines() if ln.strip()), T("Errore"))
         board = self.begin_lecture(now, None, {"q": first[:90]})
-        system = ("Sei uno sviluppatore esperto e paziente. Spiega in italiano l'errore che ti "
+        system = T("Sei uno sviluppatore esperto e paziente. Spiega in italiano l'errore che ti "
                   "viene incollato: **Causa** in una o due frasi, poi **Come risolvere** in due-"
                   "quattro punti con '- '. Niente premesse, niente codice lungo.")
 
         def worker():
-            out, err = ask_claude("ERRORE COPIATO:\n" + text[-6000:], system)
+            out, err = ask_claude(T("ERRORE COPIATO:\n") + text[-6000:], system)
             self.work_q.put(("explain", (board, out, err)))
         threading.Thread(target=worker, daemon=True).start()
 
@@ -2149,14 +2162,14 @@ class Pet:
         self.menu_until = 0.0
         shot = pet_screen.capture(self.app_hwnd)
         if not shot:
-            return self.set_bubble("chat", "Non vedo nessuna finestra: clicca su quella che "
-                                           "ti interessa e richiedimelo.")
-        board = self.begin_lecture(time.time(), None, {"q": (question or "Cosa sta succedendo?")[:90]})
-        system = ("Sei un collega esperto e paziente. Ti arriva la foto della finestra su cui "
+            return self.set_bubble("chat", T("Non vedo nessuna finestra: clicca su quella che "
+                                             "ti interessa e richiedimelo."))
+        board = self.begin_lecture(time.time(), None, {"q": (question or T("Cosa sta succedendo?"))[:90]})
+        system = T("Sei un collega esperto e paziente. Ti arriva la foto della finestra su cui "
                   "l'utente sta lavorando. Spiega in italiano cosa sta succedendo: **Cosa vedo** "
                   "in una o due frasi, poi, se c'è un errore o un problema, **Cosa fare** in due-"
                   "quattro punti con '- '. Niente premesse.")
-        ask = f"Programma: {self.app}. " + (question or "Cosa sta succedendo qui?")
+        ask = T("Programma: {app}. ").format(app=self.app) + (question or T("Cosa sta succedendo qui?"))
 
         def worker():
             out, err = ask_claude(ask, system, timeout=120, image=shot)
@@ -2165,7 +2178,7 @@ class Pet:
 
     def show_news(self, entries):
         """Appena aggiornata: le novità sulla lavagna."""
-        board = self.begin_lecture(time.time(), None, {"q": "Le novità di questa versione"})
+        board = self.begin_lecture(time.time(), None, {"q": T("Le novità di questa versione")})
         board.answer(pet_changelog.text(entries), False)
 
     def open_clipboard(self, _e=None):
@@ -2173,13 +2186,13 @@ class Pet:
         if self.clip_win is not None:
             return
         if not self.clip.items:
-            return self.set_bubble("chat", "Non ho ancora visto niente di copiato "
-                                           "(le password e i testi privati non li guardo).")
+            return self.set_bubble("chat", T("Non ho ancora visto niente di copiato "
+                                             "(le password e i testi privati non li guardo)."))
         win = self.clip_win = tk.Toplevel(self.root)
         win.overrideredirect(True)
         win.attributes("-topmost", True)
         win.configure(bg=MENU_BORDER)
-        tk.Label(win, text="Appunti recenti (doppio clic = copia, Esc = chiudi)", bg=MENU_BORDER,
+        tk.Label(win, text=T("Appunti recenti (doppio clic = copia, Esc = chiudi)"), bg=MENU_BORDER,
                  fg="white", font=("Segoe UI", 8)).pack(anchor="w", padx=6, pady=(3, 0))
         lb = tk.Listbox(win, width=60, height=min(12, len(self.clip.items)), font=("Segoe UI", 9),
                         relief="flat", bd=4, activestyle="none")
@@ -2199,7 +2212,7 @@ class Pet:
                 self.root.clipboard_clear()
                 self.root.clipboard_append(self.clip.items[sel[0]])
                 self.root.update()
-                self.say("Copiato!", time.time() + 1.5)
+                self.say(T("Copiato!"), time.time() + 1.5)
             close()
         lb.bind("<Double-Button-1>", pick)
         lb.bind("<Return>", pick)
@@ -2233,8 +2246,8 @@ class Pet:
         lines = []
         for r in due:
             late = now - r["at"] > 120       # scaduto mentre la mascotte era chiusa
-            lines.append(r["text"] + (f" (era per le {datetime.fromtimestamp(r['at']):%H:%M})"
-                                      if late else ""))
+            lines.append(r["text"] + (T(" (era per le {time:%H:%M})").format(
+                time=datetime.fromtimestamp(r['at'])) if late else ""))
         self.summon(now)
         self.set_bubble("remind", "⏰ " + "\n⏰ ".join(lines))
         for _ in range(3):
@@ -2248,28 +2261,29 @@ class Pet:
                 when, _, what = val.partition("|")
                 try:
                     at = datetime.strptime(when.strip(), "%Y-%m-%d %H:%M").timestamp()
-                    self.add_reminder(at, what.strip() or "Promemoria!")
+                    self.add_reminder(at, what.strip() or T("Promemoria!"))
                 except ValueError:
-                    reply += "\n(Non ho capito per quando è il promemoria.)"
+                    reply += T("\n(Non ho capito per quando è il promemoria.)")
             elif tag == "#TIMER:":
                 mins, _, what = val.partition("|")
                 try:
                     self.add_reminder(now + float(mins.strip()) * 60,
-                                      (what.strip() or "Timer") + ": tempo scaduto!")
+                                      (what.strip() or "Timer") + T(": tempo scaduto!"))
                 except ValueError:
-                    reply += "\n(Non ho capito quanti minuti.)"
+                    reply += T("\n(Non ho capito quanti minuti.)")
             elif tag == "#COMANDO:":
                 cmd = self.commands.find(val)
                 if not cmd:
-                    reply += f"\n(Non conosco il comando «{val}».)"
+                    reply += T("\n(Non conosco il comando «{val}».)").format(val=val)
         return reply, cmd
 
     def do_command(self, cmd, yes):
         if not yes:
-            return self.set_bubble("chat", "Ok, non lancio niente.")
+            return self.set_bubble("chat", T("Ok, non lancio niente."))
         ok = pet_work.run_command(cmd)
-        self.set_bubble("chat", f"Lanciato «{cmd['nome']}»!" if ok
-                        else f"Non sono riuscita a lanciare «{cmd['nome']}» (cartella sbagliata?).")
+        self.set_bubble("chat", (T("Lanciato «{name}»!") if ok
+                                 else T("Non sono riuscita a lanciare «{name}» (cartella sbagliata?)."))
+                        .format(name=cmd['nome']))
 
     # ---- giornata: buongiorno, standup, weekend ------------------------------------------
     def check_day(self, now):
@@ -2287,12 +2301,12 @@ class Pet:
             d["greet_day"] = today
             self.brain.save()
             name = (" " + self.brain.name) if self.brain.name else ""
-            return self.set_bubble("need", f"Buongiorno{name}!")
+            return self.set_bubble("need", T("Buongiorno{name}!").format(name=name))
         if (dt.weekday() == 4 and (dt.hour, dt.minute) >= (17, 30)
                 and d.get("weekend_day") != today and self.quiet()):
             d["weekend_day"] = today
             self.brain.save()
-            self.set_bubble("need", "È venerdì sera: buon weekend in arrivo!")
+            self.set_bubble("need", T("È venerdì sera: buon weekend in arrivo!"))
             self.set_state("happy", now)
             self.happy_until = now + 2.0
             for _ in range(5):
@@ -2304,7 +2318,7 @@ class Pet:
             return
         now = time.time()
         self.standup_busy = True
-        title = "Buongiorno! Il tuo standup di oggi" if greet else "Il tuo standup"
+        title = T("Buongiorno! Il tuo standup di oggi") if greet else T("Il tuo standup")
         board = self.begin_lecture(now, None, {"q": title})
         since = pet_work.prev_workday()
         until = datetime.combine(date.today(), datetime.min.time())
@@ -2331,7 +2345,7 @@ class Pet:
         mx, my = self.mouse
         self.ball = {"mon": self.monitor_at(mx, my), "x": mx + 14, "y": my + 30, "vx": 0.0,
                      "vy": 0.0, "state": "carry", "t0": now, "touch": now, "dx": 14, "dy": 30}
-        self.set_bubble("chat", "Palla! Lanciala (trascinala e lasciala andare) e io la rincorro.")
+        self.set_bubble("chat", T("Palla! Lanciala (trascinala e lasciala andare) e io la rincorro."))
         if self.state == "sleep":
             self.set_state("idle", now)
 
@@ -2413,15 +2427,15 @@ class Pet:
         if self.hide:
             return
         now = time.time()
-        m, T = self.hide_spot()
+        m, Tp = self.hide_spot()
         if not m:
-            return self.set_bubble("chat", "Non ci sono finestre dietro cui nascondermi!")
+            return self.set_bubble("chat", T("Non ci sono finestre dietro cui nascondermi!"))
         self.ball = None
-        self.hide = {"mon": m, "T": T, "x": random.uniform(T[2] + MARGIN, T[3] - MARGIN),
+        self.hide = {"mon": m, "T": Tp, "x": random.uniform(Tp[2] + MARGIN, Tp[3] - MARGIN),
                      "t0": now}
         if self.state == "sleep":
             self.set_state("idle", now)
-        self.set_bubble("chat", "Nascondino! Conta fino a dieci... poi trovami e cliccami!")
+        self.set_bubble("chat", T("Nascondino! Conta fino a dieci... poi trovami e cliccami!"))
         self.next_think = now + 2.5
 
     def st_hide(self, now):
@@ -2435,7 +2449,7 @@ class Pet:
             self.hide = None
             self.set_state("happy", now)
             self.happy_until = now + 1.5
-            self.set_bubble("chat", "Non mi hai trovata! Ho vinto io!")
+            self.set_bubble("chat", T("Non mi hai trovata! Ho vinto io!"))
 
     def found_hiding(self, now):
         secs = int(now - self.hide["t0"])
@@ -2445,7 +2459,7 @@ class Pet:
         self.brain.bump_mood(0.08)
         for _ in range(6):
             self.add_heart()
-        self.set_bubble("chat", f"Mi hai trovata in {secs} secondi! Bravo!")
+        self.set_bubble("chat", T("Mi hai trovata in {secs} secondi! Bravo!").format(secs=secs))
 
     def draw_ball(self):
         b = self.ball
@@ -2478,19 +2492,20 @@ class Pet:
 
     def say_need(self, now):
         if self.hungry(now):
-            lines = ["Ho un certo languorino... un biscotto?", "Mi daresti qualcosa da sgranocchiare?"]
+            lines = [T("Ho un certo languorino... un biscotto?"), T("Mi daresti qualcosa da sgranocchiare?")]
             cat = "fame"
         elif now - self.last_move > 300 and self.brain.mood < 0.4:
-            lines = ["Mi sento un po' sola quassù.", "Ci sei ancora? Mi mancavi."]
+            lines = [T("Mi sento un po' sola quassù."), T("Ci sei ancora? Mi mancavi.")]
             cat = "solitudine"
         else:
             name = (" " + self.brain.name) if self.brain.name else ""
-            lines = [f"Ciao{name}! Tutto bene?", "Sto facendo due passi sui bordi.",
-                     "Se ti serve una mano, doppio clic su di me."]
+            lines = [T("Ciao{name}! Tutto bene?").format(name=name), T("Sto facendo due passi sui bordi."),
+                     T("Se ti serve una mano, doppio clic su di me.")]
             rec = self.know.recent_projects()
             if rec:                          # i progetti su cui lavori ultimamente
                 p = random.choice(rec)
-                lines += [f"Come procede {p}?", f"Se vuoi ti apro Claude su {p}: chiedimelo!"]
+                lines += [T("Come procede {p}?").format(p=p),
+                          T("Se vuoi ti apro Claude su {p}: chiedimelo!").format(p=p)]
             cat = "saluto"
         self.set_bubble("need", random.choice(lines), cat=cat)
 
@@ -2519,8 +2534,8 @@ class Pet:
         if err or not text:
             if kind == "chat" and self.chat_hist and self.chat_hist[-1][0] == "Utente":
                 self.chat_hist.pop()             # domanda rimasta senza risposta
-            fallback = {"chat": "Scusa, mi si è annodata la lingua. Riprova!",
-                        "advice": "Mmm, non mi viene in mente nulla di furbo adesso."}
+            fallback = {"chat": T("Scusa, mi si è annodata la lingua. Riprova!"),
+                        "advice": T("Mmm, non mi viene in mente nulla di furbo adesso.")}
             return self.set_bubble("chat", fallback.get(kind, "..."), cat=None)
         launch, skill, tags, keep = None, None, [], []
         for line in text.splitlines():           # #AVVIA:, #PROMEMORIA:... valgono solo in chat
@@ -2539,7 +2554,7 @@ class Pet:
             self.brain.set_name(name)
         for f in facts:
             self.brain.remember(f)
-        clean = clean or ("Ci penso io!" if launch or tags else text)
+        clean = clean or (T("Ci penso io!") if launch or tags else text)
         cmd = None
         if kind == "chat":
             if launch or skill:
@@ -2550,8 +2565,8 @@ class Pet:
             if self.session_id:
                 self.sessions.append(self.session_id, "Tu", clean)
         if cmd:                                  # un comando si lancia solo col tuo sì
-            self.set_bubble("ask", f"{clean}\nLancio «{cmd['nome']}»? ({cmd['comando']})",
-                            thumbs=True)
+            self.set_bubble("ask", T("{clean}\nLancio «{name}»? ({command})").format(
+                clean=clean, name=cmd['nome'], command=cmd['comando']), thumbs=True)
             self.bubble["command"] = cmd
             return
         self.set_bubble("advice" if kind == "advice" else "chat", clean,
@@ -2561,16 +2576,19 @@ class Pet:
     def give_advice(self, now, spontaneous):
         wm = int(self.working_min(now))
         hour = datetime.now().hour
-        part = ("mattina" if hour < 12 else "pomeriggio" if hour < 18
-                else "sera" if hour < 23 else "notte fonda")
+        part = (T("mattina") if hour < 12 else T("pomeriggio") if hour < 18
+                else T("sera") if hour < 23 else T("notte fonda"))
         self.last_fb_cat = ("pausa" if wm > LONG_WORK_MIN else "riposo" if hour >= 23 or hour < 6
                             else "generico")
-        prompt = (f"È {part} (ore {hour}). L'utente sta lavorando da circa {wm} minuti "
-                  f"senza pause. Programma in primo piano: {self.app or 'sconosciuto'}. "
-                  f"COSA RICORDO: {self.brain.context()}\n" + self.knowledge_block("") +
-                  f"{'Proponi tu, spontaneamente,' if spontaneous else 'Ti ha chiesto'} "
-                  "UN consiglio breve e gentile adatto a questo momento, in una frase.")
-        self.ask_async("advice", prompt, PERSONA.format(user=self.brain.name or "qualcuno",
+        prompt = (T("È {part} (ore {hour}). L'utente sta lavorando da circa {wm} minuti "
+                    "senza pause. Programma in primo piano: {app}. "
+                    "COSA RICORDO: {ctx}\n").format(part=part, hour=hour, wm=wm,
+                                                    app=self.app or T("sconosciuto"),
+                                                    ctx=self.brain.context())
+                  + self.knowledge_block("") +
+                  (T("Proponi tu, spontaneamente,") if spontaneous else T("Ti ha chiesto")) + " "
+                  + T("UN consiglio breve e gentile adatto a questo momento, in una frase."))
+        self.ask_async("advice", prompt, PERSONA.format(user=self.brain.name or T("qualcuno"),
                                                         who=WHO[CHARACTER]))
 
     def propose_improvements(self, now, auto):
@@ -2585,22 +2603,22 @@ class Pet:
             code = Path(__file__).read_text(encoding="utf-8")[:48000]
         except OSError:
             return
-        self.say("Rifletto su come potrei migliorarmi...", now + 6)
-        system = ("Sei un revisore di codice Python conciso. Ti viene dato il sorgente di una "
+        self.say(T("Rifletto su come potrei migliorarmi..."), now + 6)
+        system = T("Sei un revisore di codice Python conciso. Ti viene dato il sorgente di una "
                   "mascotte da desktop in tkinter. Proponi 3 migliorie CONCRETE e piccole "
                   "(bug, chiarezza, piccole feature), ognuna come '- [ ] titolo: una riga di "
                   "spiegazione'. Solo la lista, niente altro.")
-        self.ask_async("proposals", "SORGENTE:\n" + code, system)
+        self.ask_async("proposals", T("SORGENTE:\n") + code, system)
 
     def on_proposals(self, now, text, err):
         if err or not text:
-            return self.say("Non sono riuscita a farmi venire idee, pazienza.", now + 3)
+            return self.say(T("Non sono riuscita a farmi venire idee, pazienza."), now + 3)
         try:
             with PROPOSALS_PATH.open("a", encoding="utf-8") as fh:
                 fh.write(f"\n## {datetime.now():%Y-%m-%d %H:%M}\n{text.strip()}\n")
-            self.say("Ho scritto qualche idea in pet_proposals.md, decidi tu!", now + 4)
+            self.say(T("Ho scritto qualche idea in pet_proposals.md, decidi tu!"), now + 4)
         except OSError:
-            self.say("Avevo delle idee ma non riesco a salvarle.", now + 3)
+            self.say(T("Avevo delle idee ma non riesco a salvarle."), now + 3)
 
     # ---- fumetti e chat --------------------------------------------------------
     def set_bubble(self, kind, text, cat=None, thumbs=False):
@@ -2647,7 +2665,7 @@ class Pet:
             return
         if b["cat"]:
             self.brain.feedback(b["cat"], good)
-        self.set_bubble("chat", "Grazie, me lo segno!" if good else "Ok, cambio registro.",
+        self.set_bubble("chat", T("Grazie, me lo segno!") if good else T("Ok, cambio registro."),
                         cat=None)
 
     def open_talk(self, _e=None):
@@ -2659,7 +2677,7 @@ class Pet:
         win.overrideredirect(True)
         win.attributes("-topmost", True)
         win.configure(bg=MENU_BORDER)
-        tk.Label(win, text="Parliamo! (Invio = manda, Esc = chiudi)", bg=MENU_BORDER,
+        tk.Label(win, text=T("Parliamo! (Invio = manda, Esc = chiudi)"), bg=MENU_BORDER,
                  fg="white", font=("Segoe UI", 8)).pack(anchor="w", padx=6, pady=(3, 0))
         ent = self.talk_ent = tk.Entry(win, width=34, font=("Segoe UI", 10), relief="flat", bd=4)
         ent.pack(padx=6, pady=(0, 6))
@@ -2690,14 +2708,17 @@ class Pet:
             self.talk_ent.delete(0, "end")
         now = time.time()
         low = text.lower()
-        if any(k in low for k in ("cosa faccio", "che faccio", "consiglio", "consigli", "suggeri")):
+        if any(k in low for k in ("cosa faccio", "che faccio", "consiglio", "consigli", "suggeri",
+                                  "advice", "advise", "suggest", "what should i do")):
             return self.give_advice(now, spontaneous=False)
-        if "standup" in low:
+        if "standup" in low or "stand-up" in low:
             return self.start_standup()
         if re.search(r"\b(cosa succede|che succede|cosa vedi|guarda lo schermo|spiegami lo "
-                     r"schermo|screen\w*)\b", low):
+                     r"schermo|screen\w*|what's happening|what is happening|what's going on|"
+                     r"what do you see|look at the screen|explain the screen)\b", low):
             return self.explain_screen(text)
-        if re.search(r"\b(aggiornati|aggiornamenti|nuova versione)\b", low):
+        if re.search(r"\b(aggiornati|aggiornamenti|nuova versione|update yourself|updates|"
+                     r"new version)\b", low):
             return self.check_update_now()
         if now - self.chat_at > CHAT_FORGET_S or self.session_id is None:
             self.queue_diary()               # la chiacchierata precedente va nel diario
@@ -2709,18 +2730,19 @@ class Pet:
         query = " ".join(t for w, t in self.chat_hist[-4:] if w == "Utente")  # anche "e quello?"
         extra = ""
         if self.commands.hint():
-            extra += "COMANDI RAPIDI: " + self.commands.hint() + "\n"
+            extra += T("COMANDI RAPIDI: ") + self.commands.hint() + "\n"
         if self.reminders_context():
-            extra += "PROMEMORIA ATTIVI: " + self.reminders_context() + "\n"
+            extra += T("PROMEMORIA ATTIVI: ") + self.reminders_context() + "\n"
         if self.asked_launch(text) and self.know.skills_hint():   # solo se serve: costa
-            extra += "SKILL DI CLAUDE CODE: " + self.know.skills_hint() + "\n"
-        prompt = (f"COSA RICORDO: {self.brain.context()} Sei {self.brain.mood_label()}.\n"
+            extra += T("SKILL DI CLAUDE CODE: ") + self.know.skills_hint() + "\n"
+        prompt = (T("COSA RICORDO: {ctx} Sei {mood}.\n").format(ctx=self.brain.context(),
+                                                               mood=self.brain.mood_label())
                   + self.knowledge_block(query) + extra
-                  + f"CONVERSAZIONE FINORA (Tu = la mascotte):\n{talk}\n"
-                  "Rispondi all'ultimo messaggio dell'utente, in carattere, tenendo conto di "
-                  "quanto vi siete già detti. " + LAUNCH_HINT + " " + REMEMBER_HINT + " "
+                  + T("CONVERSAZIONE FINORA (Tu = la mascotte):\n") + talk + "\n"
+                  + T("Rispondi all'ultimo messaggio dell'utente, in carattere, tenendo conto di "
+                      "quanto vi siete già detti. ") + LAUNCH_HINT + " " + REMEMBER_HINT + " "
                   + REMIND_HINT.format(now=datetime.now().strftime("%A %Y-%m-%d %H:%M")))
-        self.ask_async("chat", prompt, PERSONA.format(user=self.brain.name or "qualcuno",
+        self.ask_async("chat", prompt, PERSONA.format(user=self.brain.name or T("qualcuno"),
                                                       who=WHO[CHARACTER]))
 
     def knowledge_block(self, query):
@@ -2729,17 +2751,17 @@ class Pet:
         parts = []
         ov = self.know.overview()
         if ov:
-            parts.append("PROGETTI: " + ov)
+            parts.append(T("PROGETTI: ") + ov)
         di = self.brain.diary_context()
         if di:
-            parts.append("DIARIO DELLE VOSTRE CHIACCHIERATE:\n" + di)
+            parts.append(T("DIARIO DELLE VOSTRE CHIACCHIERATE:\n") + di)
         if query:
             mem = self.know.search(query)
             if mem:
-                parts.append("MEMORIE DI CLAUDE CODE PERTINENTI:\n" + mem)
+                parts.append(T("MEMORIE DI CLAUDE CODE PERTINENTI:\n") + mem)
             past = self.sessions.search(query, exclude=self.session_id)
             if past:
-                parts.append("CONVERSAZIONI PASSATE PERTINENTI:\n" + past)
+                parts.append(T("CONVERSAZIONI PASSATE PERTINENTI:\n") + past)
         return "".join(p + "\n" for p in parts)
 
     @staticmethod
@@ -2759,19 +2781,19 @@ class Pet:
             sname, _, args = skill.strip().lstrip("/").partition(" ")
             have = {w for n, _, w in self.know.skills() if n.lower() == sname.lower()}
             if not have:
-                return reply + f"\n(Non trovo la skill «{sname}».)"
+                return reply + T("\n(Non trovo la skill «{sname}».)").format(sname=sname)
             prompt = f"/{sname} {args}".strip()
         if name:
             key, path = self.know.find_project(name)
             if not path:
-                return reply + f"\n(Non trovo il progetto «{name}».)"
+                return reply + T("\n(Non trovo il progetto «{name}».)").format(name=name)
             work = self.know.is_work(path)
         else:                                # solo la skill: si apre nella tua cartella
             key, path = prompt.split()[0], str(Path.home())
         if have and work not in have:        # la skill sta solo nell'altro profilo
             work = True in have
         if not launch_claude(path, key, work=work, prompt=prompt):
-            return reply + "\n(Non sono riuscita ad aprire Claude Code.)"
+            return reply + T("\n(Non sono riuscita ad aprire Claude Code.)")
         return reply
 
     # ---- diario delle chiacchierate ---------------------------------------------
@@ -2786,10 +2808,10 @@ class Pet:
         turns = self.sessions.load(sid)
         self.diary_done[sid] = len(turns)    # anche se fallisce: niente tentativi a ripetizione
         talk = "\n".join(f"{w}: {t[:400]}" for w, t in turns[-24:])
-        system = ("Scrivi il diario di una mascotte da desktop: una o due frasi in italiano, in "
+        system = T("Scrivi il diario di una mascotte da desktop: una o due frasi in italiano, in "
                   "prima persona (io = la mascotte), su di cosa abbiamo parlato e cosa ho capito "
                   "dell'utente. Niente elenchi, niente saluti.")
-        if self.ask_async("diary", "CHIACCHIERATA:\n" + talk, system):
+        if self.ask_async("diary", T("CHIACCHIERATA:\n") + talk, system):
             self.diary_sid = sid
 
     # ---- disegno ---------------------------------------------------------------
@@ -2854,7 +2876,7 @@ class Pet:
         c.itemconfigure(tmp, tags=("bubble",))
         if extra:                            # pollici su/giù per i consigli (sì/no per le faccende)
             fy = by1 - 16
-            yes = "Sì" if b["kind"] == "ask" else "Utile"
+            yes = T("Sì") if b["kind"] == "ask" else T("Utile")
             c.create_text(bx0 + pad + 6, fy, text="\U0001F44D  " + yes, anchor="w",
                           fill="#2E7D32", font=("Segoe UI", 9), tags=("bubble", "thumb_up"))
             c.create_text(bx0 + tw + pad - 6, fy, text="No  \U0001F44E", anchor="e",
@@ -3200,31 +3222,33 @@ class Pet:
 
     def draw_menu(self):
         c = self.c
-        style = "Scintille" if self.portal_style == "sparks" else "Ovali"
+        style = T("Scintille") if self.portal_style == "sparks" else T("Ovali")
         s = self.sys_status
-        pc = (f"PC: {s['uptime_h']:.0f} h · mem {s['commit_pct']:.0f}% · "
-              if s else "PC e spesa: ") + pet_work.spending_label(self.brain.data).split(" ·")[0]
-        rows = (("menu_talk", "Parla con me", MENU_FG),
-                ("menu_advice", "Dammi un consiglio", MENU_FG),
-                ("menu_standup", "Standup di oggi", MENU_FG),
-                ("menu_feed", "Dai da mangiare", MENU_FG),
-                ("menu_ball", "Basta palla" if self.ball else "Gioca a palla", MENU_FG),
-                ("menu_hide", "Nascondino", MENU_FG),
-                ("menu_clip", "Appunti recenti", MENU_FG),
-                ("menu_screen", "Spiegami lo schermo", MENU_FG),
-                ("menu_follow", "Segui il mouse: " + ("sì" if self.follow else "no"), MENU_FG),
-                ("menu_portal", "Portale: " + style, MENU_FG),
-                ("menu_cape", "Mantello: " + ("sì" if self.cape_on else "no"), MENU_FG),
-                ("menu_power", "Potere: " + POWER_NAMES[self.power_pref], MENU_FG),
-                ("menu_meeting", "Zitta in riunione: " + ("sì" if MEETING_MODE else "no"), MENU_FG),
+        pc = (T("PC: {hours:.0f} h · mem {pct:.0f}% · ").format(hours=s['uptime_h'],
+                                                                pct=s['commit_pct'])
+              if s else T("PC e spesa: ")) + pet_work.spending_label(self.brain.data).split(" ·")[0]
+        yes, no = T("sì"), T("no")
+        rows = (("menu_talk", T("Parla con me"), MENU_FG),
+                ("menu_advice", T("Dammi un consiglio"), MENU_FG),
+                ("menu_standup", T("Standup di oggi"), MENU_FG),
+                ("menu_feed", T("Dai da mangiare"), MENU_FG),
+                ("menu_ball", T("Basta palla") if self.ball else T("Gioca a palla"), MENU_FG),
+                ("menu_hide", T("Nascondino"), MENU_FG),
+                ("menu_clip", T("Appunti recenti"), MENU_FG),
+                ("menu_screen", T("Spiegami lo schermo"), MENU_FG),
+                ("menu_follow", T("Segui il mouse: ") + (yes if self.follow else no), MENU_FG),
+                ("menu_portal", T("Portale: ") + style, MENU_FG),
+                ("menu_cape", T("Mantello: ") + (yes if self.cape_on else no), MENU_FG),
+                ("menu_power", T("Potere: ") + POWER_NAMES[self.power_pref], MENU_FG),
+                ("menu_meeting", T("Zitta in riunione: ") + (yes if MEETING_MODE else no), MENU_FG),
                 ("menu_pc", pc, "#6B6A65"),
-                ("menu_chores", "Fai le pulizie", MENU_FG),
-                ("menu_undo", "Annulla pulizie", MENU_FG),
-                ("menu_propose", "Proponi miglioramenti", MENU_FG),
-                ("menu_settings", "Impostazioni…", MENU_FG),
-                ("menu_update", "Cerca aggiornamenti", MENU_FG),
-                ("menu_forget", "Dimentica tutto", MENU_FG),
-                ("menu_quit", "Esci", MENU_RED))
+                ("menu_chores", T("Fai le pulizie"), MENU_FG),
+                ("menu_undo", T("Annulla pulizie"), MENU_FG),
+                ("menu_propose", T("Proponi miglioramenti"), MENU_FG),
+                ("menu_settings", T("Impostazioni…"), MENU_FG),
+                ("menu_update", T("Cerca aggiornamenti"), MENU_FG),
+                ("menu_forget", T("Dimentica tutto"), MENU_FG),
+                ("menu_quit", T("Esci"), MENU_RED))
         rh = 24
         w, h = 220, len(rows) * rh + 4
         x0 = min(max(self.x - self.ox - w / 2, 4), int(c.cget("width")) - w - 4)
@@ -3267,9 +3291,10 @@ def main():
     pet = Pet(root)
     res = pet_update.take_result()          # appena aggiornata: com'è andata
     if res:
-        text = (f"Eccomi! Ora sono la versione {str(res.get('tag', '')).lstrip('v')}." if res.get("ok")
-                else "Non sono riuscita ad aggiornarmi: i dettagli sono in update.log, "
-                     "nella cartella dei dati.")
+        text = (T("Eccomi! Ora sono la versione {version}.").format(
+                    version=str(res.get('tag', '')).lstrip('v')) if res.get("ok")
+                else T("Non sono riuscita ad aggiornarmi: i dettagli sono in update.log, "
+                       "nella cartella dei dati."))
         root.after(3000, lambda: pet.set_bubble("chat", text))
     news = pet_changelog.to_show(pet.brain.data.get("seen_version"), bool(res and res.get("ok")))
     pet.brain.data["seen_version"] = pet_update.__version__

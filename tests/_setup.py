@@ -1,9 +1,12 @@
 """Comune a tutti i test: il pacchetto dal repo, dati/config/collegamenti in una cartella
 temporanea, finestre della mascotte nascoste, microfono e schermo intero simulati."""
 import ctypes
+import os
 import pathlib
 import sys
 import tempfile
+
+os.environ["HOPPY_LANG"] = "it"              # i test controllano i testi italiani
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 ctypes.windll.shcore.SetProcessDpiAwareness(2)
