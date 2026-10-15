@@ -85,7 +85,8 @@ pythonw -m hoppy.pet
 
 Once a day Hoppy checks GitHub for a new release. If there is one, it asks you in its
 speech bubble; answer 👍 and it closes the mascot, popup and inline, installs the new
-version with pip (no git needed) and starts them again. 👎 skips that version. The
+version with pip (no git needed) and starts them again. 👎 skips that version. To check
+right away, write *aggiornati* in the chat or use *Cerca aggiornamenti* in the menu. The
 outcome is written to `%APPDATA%\Hoppy\update.log`; you can turn the check off in the
 Settings (*Avvisi* tab).
 

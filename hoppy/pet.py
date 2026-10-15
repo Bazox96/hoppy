@@ -946,6 +946,7 @@ class Pet:
             c.tag_bind("menu_power", "<ButtonPress-1>", self.cycle_power)
             c.tag_bind("menu_meeting", "<ButtonPress-1>", self.toggle_meeting_mode)
             c.tag_bind("menu_settings", "<ButtonPress-1>", self.open_settings)
+            c.tag_bind("menu_update", "<ButtonPress-1>", self.check_update_now)
             c.tag_bind("menu_quit", "<ButtonPress-1>", lambda e: root.destroy())
         self.tick()
 
@@ -1952,13 +1953,28 @@ class Pet:
             board.answer(text or ("Non sono riuscita a capirlo: " + (err or "")), bool(err))
         elif kind == "update":
             self.offer_update(now, data)
+        elif kind == "update_now":
+            self.offer_update(now, data, manual=True)
 
     # ---- aggiornamenti --------------------------------------------------------------
-    def offer_update(self, now, tag):
-        """È uscita una versione nuova: chiede se installarla (una volta per versione)."""
-        if not tag or not pet_update.is_newer(tag) or self.brain.data.get("update_skip") == tag:
+    def check_update_now(self, _e=None):
+        """Chiesto da te (chat o menu): controlla subito, anche le versioni a cui hai detto no."""
+        self.menu_until = 0.0
+        self.set_bubble("chat", "Controllo se c'è una versione nuova...")
+        threading.Thread(target=lambda: self.work_q.put(("update_now", pet_update.latest())),
+                         daemon=True).start()
+
+    def offer_update(self, now, tag, manual=False):
+        """È uscita una versione nuova: chiede se installarla (da sola, una volta per versione)."""
+        if manual and not tag:
+            return self.set_bubble("chat", "Non riesco a controllare adesso: riprova più tardi.")
+        if manual and not pet_update.is_newer(tag):
+            return self.set_bubble("chat", "Sono già all'ultima versione "
+                                           f"({pet_update.__version__}).")
+        if not tag or not pet_update.is_newer(tag) or (
+                not manual and self.brain.data.get("update_skip") == tag):
             return
-        if not self.quiet():                 # sta facendo altro: riprova fra un'ora
+        if not manual and not self.quiet():  # sta facendo altro: riprova fra un'ora
             self.next_update = now + 3600
             return
         version = tag.lstrip("v")
@@ -2641,6 +2657,8 @@ class Pet:
             return self.give_advice(now, spontaneous=False)
         if "standup" in low:
             return self.start_standup()
+        if re.search(r"\b(aggiornati|aggiornamenti|nuova versione)\b", low):
+            return self.check_update_now()
         if now - self.chat_at > CHAT_FORGET_S or self.session_id is None:
             self.queue_diary()               # la chiacchierata precedente va nel diario
             self.chat_hist, self.session_id = [], self.sessions.new_id()
@@ -3163,6 +3181,7 @@ class Pet:
                 ("menu_undo", "Annulla pulizie", MENU_FG),
                 ("menu_propose", "Proponi miglioramenti", MENU_FG),
                 ("menu_settings", "Impostazioni…", MENU_FG),
+                ("menu_update", "Cerca aggiornamenti", MENU_FG),
                 ("menu_forget", "Dimentica tutto", MENU_FG),
                 ("menu_quit", "Esci", MENU_RED))
         rh = 24

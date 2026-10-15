@@ -85,7 +85,8 @@ pythonw -m hoppy.pet
 
 Una volta al giorno Hoppy controlla su GitHub se è uscita una versione nuova. Se c'è, te lo
 chiede nel fumetto: rispondi 👍 e lei chiude mascotte, popup e inline, installa la nuova
-versione con pip (non serve git) e li riapre. Il 👎 salta quella versione. L'esito finisce
+versione con pip (non serve git) e li riapre. Il 👎 salta quella versione. Per controllare
+subito scrivile *aggiornati* in chat o usa *Cerca aggiornamenti* nel menu. L'esito finisce
 in `%APPDATA%\Hoppy\update.log`; il controllo si spegne dalle Impostazioni (scheda
 *Avvisi*).
 

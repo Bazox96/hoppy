@@ -110,7 +110,24 @@ def run():
                   "t0": now, "done_t": None}
     pet.offer_update(now, "v0.3.0")
     check("occupata: riprova fra un'ora", pet.bubble["full"] == "altro" and pet.next_update > now + 3000)
+    pet.offer_update(now, None, manual=True)
+    check("a mano, GitHub non risponde: lo dice", "Non riesco" in pet.bubble["full"])
+    pet.offer_update(now, "v0.1.0", manual=True)
+    check("a mano, già aggiornata: lo dice", "già all'ultima versione (0.1.0)" in pet.bubble["full"])
+    pet.offer_update(now, "v0.2.0", manual=True)
+    check("a mano: ripropone anche la versione a cui aveva detto no",
+          pet.bubble.get("update") == "v0.2.0")
+    up.latest = lambda: "v0.2.0"
+    pet.thinking = None
+    pet.send_talk("aggiornati")
+    check("«aggiornati» in chat: controlla subito, senza Claude", "Controllo" in pet.bubble["full"])
+    root.after(1500, step2)
+
+def step2():
+    now = time.time()
+    check("«aggiornati»: poi chiede se installare", pet.bubble.get("update") == "v0.2.0")
     pet.bubble = None
+    pet.set_state("idle", now)
     pet.offer_update(now, "v0.3.0")
     root.destroy_real, root.destroy = root.destroy, lambda: destroyed.append(1)
     pet.on_thumb(True)
