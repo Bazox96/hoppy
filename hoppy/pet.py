@@ -33,6 +33,7 @@ Le chiamate a Claude passano dalla CLI `claude`. L'unica altra rete è una porta
 (127.0.0.1:PET_PORT) su cui hoppy-inline le passa domande e risposte.
 """
 import array
+import base64
 import ctypes
 import ctypes.wintypes as wt
 import json
@@ -55,9 +56,11 @@ from collections import namedtuple
 from datetime import date, datetime
 from pathlib import Path
 
+from . import changelog as pet_changelog
 from . import chores as pet_chores
 from . import config as pet_config
 from . import knowledge as pet_knowledge
+from . import screen as pet_screen
 from . import settings as pet_settings
 from . import update as pet_update
 from . import watch as pet_watch
@@ -262,14 +265,22 @@ def active_app(own_pid):
         kernel32.CloseHandle(h)
 
 
-def ask_claude(prompt, system, timeout=90):
-    """Una domanda a Claude via CLI (piano abbonamento). Ritorna (testo, None) o (None, errore)."""
+def ask_claude(prompt, system, timeout=90, image=None):
+    """Una domanda a Claude via CLI (piano abbonamento). Ritorna (testo, None) o (None, errore).
+    image: PNG da fargli guardare insieme al testo."""
     exe = shutil.which("claude") or str(Path.home() / ".local" / "bin" / "claude.exe")
     if not Path(exe).exists():
         return None, "CLI 'claude' non trovata"
     cmd = [exe, "-p", "--model", MODEL, "--output-format", "json",
            "--no-session-persistence", "--setting-sources", "", "--strict-mcp-config",
            "--tools", "", "--system-prompt", system]
+    if image:                                # testo + immagine: si passa come messaggio JSON
+        cmd[cmd.index("json")] = "stream-json"
+        cmd += ["--verbose", "--input-format", "stream-json"]
+        prompt = json.dumps({"type": "user", "message": {"role": "user", "content": [
+            {"type": "image", "source": {"type": "base64", "media_type": "image/png",
+                                         "data": base64.b64encode(image).decode()}},
+            {"type": "text", "text": prompt}]}}) + "\n"
     try:
         r = subprocess.run(cmd, input=prompt, capture_output=True, text=True, encoding="utf-8",
                            timeout=timeout, cwd=tempfile.gettempdir(), env=clean_env(),
@@ -277,8 +288,8 @@ def ask_claude(prompt, system, timeout=90):
     except (subprocess.TimeoutExpired, OSError) as e:
         return None, str(e)
     try:
-        out = json.loads(r.stdout)
-    except ValueError:
+        out = json.loads(r.stdout.strip().splitlines()[-1])   # stream-json: l'esito è l'ultima riga
+    except (ValueError, IndexError):
         out = {}
     COSTS.put(out.get("total_cost_usd") or 0.0)   # la spesa la conta la mascotte (pet_work)
     if r.returncode != 0 or out.get("is_error") or "result" not in out:
@@ -879,6 +890,7 @@ class Pet:
         self.diary_done = {}                    # battute già riassunte, per chiacchierata
         self.work_since = now          # inizio della sessione di lavoro corrente
         self.app = ""
+        self.app_hwnd = None                 # la sua finestra: quella da "guardare" se chiedi
         self.last_mood_save = now
         self.advice_today, self.advice_day = 0, date.today().isoformat()
         self.next_spontaneous = now + random.uniform(60, 150)
@@ -946,6 +958,7 @@ class Pet:
             c.tag_bind("menu_power", "<ButtonPress-1>", self.cycle_power)
             c.tag_bind("menu_meeting", "<ButtonPress-1>", self.toggle_meeting_mode)
             c.tag_bind("menu_settings", "<ButtonPress-1>", self.open_settings)
+            c.tag_bind("menu_screen", "<ButtonPress-1>", lambda e: self.explain_screen())
             c.tag_bind("menu_update", "<ButtonPress-1>", self.check_update_now)
             c.tag_bind("menu_quit", "<ButtonPress-1>", lambda e: root.destroy())
         self.tick()
@@ -1800,7 +1813,7 @@ class Pet:
         if now - self.last_refresh < 0.02:   # l'app attiva la leggo di rado (al refresh)
             a = active_app(self.pid)
             if a:
-                self.app = a
+                self.app, self.app_hwnd = a, user32.GetForegroundWindow()
         if self.bubble:
             self.update_bubble(now)
         if self.advice_day != date.today().isoformat():
@@ -2130,6 +2143,30 @@ class Pet:
             out, err = ask_claude("ERRORE COPIATO:\n" + text[-6000:], system)
             self.work_q.put(("explain", (board, out, err)))
         threading.Thread(target=worker, daemon=True).start()
+
+    def explain_screen(self, question=None):
+        """Fotografa la finestra su cui stavi lavorando e la spiega sulla lavagna."""
+        self.menu_until = 0.0
+        shot = pet_screen.capture(self.app_hwnd)
+        if not shot:
+            return self.set_bubble("chat", "Non vedo nessuna finestra: clicca su quella che "
+                                           "ti interessa e richiedimelo.")
+        board = self.begin_lecture(time.time(), None, {"q": (question or "Cosa sta succedendo?")[:90]})
+        system = ("Sei un collega esperto e paziente. Ti arriva la foto della finestra su cui "
+                  "l'utente sta lavorando. Spiega in italiano cosa sta succedendo: **Cosa vedo** "
+                  "in una o due frasi, poi, se c'è un errore o un problema, **Cosa fare** in due-"
+                  "quattro punti con '- '. Niente premesse.")
+        ask = f"Programma: {self.app}. " + (question or "Cosa sta succedendo qui?")
+
+        def worker():
+            out, err = ask_claude(ask, system, timeout=120, image=shot)
+            self.work_q.put(("explain", (board, out, err)))
+        threading.Thread(target=worker, daemon=True).start()
+
+    def show_news(self, entries):
+        """Appena aggiornata: le novità sulla lavagna."""
+        board = self.begin_lecture(time.time(), None, {"q": "Le novità di questa versione"})
+        board.answer(pet_changelog.text(entries), False)
 
     def open_clipboard(self, _e=None):
         self.menu_until = 0.0
@@ -2657,6 +2694,9 @@ class Pet:
             return self.give_advice(now, spontaneous=False)
         if "standup" in low:
             return self.start_standup()
+        if re.search(r"\b(cosa succede|che succede|cosa vedi|guarda lo schermo|spiegami lo "
+                     r"schermo|screen\w*)\b", low):
+            return self.explain_screen(text)
         if re.search(r"\b(aggiornati|aggiornamenti|nuova versione)\b", low):
             return self.check_update_now()
         if now - self.chat_at > CHAT_FORGET_S or self.session_id is None:
@@ -3171,6 +3211,7 @@ class Pet:
                 ("menu_ball", "Basta palla" if self.ball else "Gioca a palla", MENU_FG),
                 ("menu_hide", "Nascondino", MENU_FG),
                 ("menu_clip", "Appunti recenti", MENU_FG),
+                ("menu_screen", "Spiegami lo schermo", MENU_FG),
                 ("menu_follow", "Segui il mouse: " + ("sì" if self.follow else "no"), MENU_FG),
                 ("menu_portal", "Portale: " + style, MENU_FG),
                 ("menu_cape", "Mantello: " + ("sì" if self.cape_on else "no"), MENU_FG),
@@ -3230,6 +3271,11 @@ def main():
                 else "Non sono riuscita ad aggiornarmi: i dettagli sono in update.log, "
                      "nella cartella dei dati.")
         root.after(3000, lambda: pet.set_bubble("chat", text))
+    news = pet_changelog.to_show(pet.brain.data.get("seen_version"), bool(res and res.get("ok")))
+    pet.brain.data["seen_version"] = pet_update.__version__
+    pet.brain.save()
+    if news:                                 # aggiornata (anche a mano): cosa c'è di nuovo
+        root.after(6000, lambda: pet.show_news(news))
     if not cfg["wizard_done"]:               # prima volta: la presentazione
         root.after(1500, pet.open_wizard)
     root.mainloop()

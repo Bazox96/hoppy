@@ -39,6 +39,9 @@ Tre programmi, indipendenti ma pensati per lavorare insieme:
 - **Avvisa:** quando una sessione di Claude Code finisce o sembra aspettare un tuo
   permesso; se copi un errore ti propone di spiegarlo; tiene d'occhio RAM e ore di
   accensione; in call si mette zitta in un angolo.
+- **Ti spiega lo schermo:** *Spiegami lo schermo* nel menu, o «cosa succede?» in chat:
+  Hoppy fotografa la finestra su cui stavi lavorando e Claude ti spiega alla lavagna cosa
+  sta succedendo.
 - **Aiuta col lavoro:** standup del mattino (dalle tue sessioni di Claude Code e dai
   commit di ieri), modifiche dimenticate e commit non pushati, cronologia degli appunti.
 - **Pulizie (spente di default):** propone di riordinare il desktop in cartelle per mese,
@@ -88,7 +91,8 @@ chiede nel fumetto: rispondi 👍 e lei chiude mascotte, popup e inline, install
 versione con pip (non serve git) e li riapre. Il 👎 salta quella versione. Per controllare
 subito scrivile *aggiornati* in chat o usa *Cerca aggiornamenti* nel menu. L'esito finisce
 in `%APPDATA%\Hoppy\update.log`; il controllo si spegne dalle Impostazioni (scheda
-*Avvisi*).
+*Avvisi*). Dopo ogni aggiornamento, anche fatto a mano, Hoppy ti racconta le novità alla
+lavagna.
 
 Per aggiornare a mano: `pipx install --force git+https://github.com/Bazox96/hoppy`.
 Dopo un aggiornamento automatico `pipx list` potrebbe mostrare ancora il numero vecchio:
@@ -141,6 +145,9 @@ e li apre con quel profilo.
 - La mascotte ascolta su una **porta locale** (`127.0.0.1:48761`) per ricevere le domande
   da `hoppy-inline`. Non è raggiungibile da altri computer; i programmi sul tuo PC possono
   solo farle mostrare una spiegazione.
+- **Spiegami lo schermo** manda a Claude la foto della finestra su cui stavi lavorando,
+  solo quando lo chiedi; non viene salvata su disco. Attenzione alle finestre con dati
+  riservati.
 - Il **controllo degli aggiornamenti** è una richiesta anonima al giorno all'API di GitHub
   (`api.github.com/repos/Bazox96/hoppy/releases/latest`); si può spegnere.
 
@@ -168,8 +175,9 @@ python tests/run_all.py
 
 I test girano con le finestre nascoste e con dati e cartelle temporanei.
 
-Per pubblicare una versione: alza `__version__` in `hoppy/__init__.py`, fai il commit, poi
-`gh release create vX.Y.Z --generate-notes`. Il tag deve corrispondere alla versione.
+Per pubblicare una versione: alza `__version__` in `hoppy/__init__.py`, scrivi le novità
+in cima a `hoppy/changelog.py` (Hoppy le mostra dopo l'aggiornamento), fai il commit, poi
+`gh release create vX.Y.Z --notes "..."`. Il tag deve corrispondere alla versione.
 
 ## Licenza
 

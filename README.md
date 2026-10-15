@@ -39,6 +39,9 @@ Three programs, independent but meant to work together:
 - **Notifies:** when a Claude Code session finishes or seems to be waiting for your
   permission; offers to explain errors you copy; keeps an eye on RAM and uptime; goes
   quiet in a corner during calls.
+- **Explains your screen:** *Spiegami lo schermo* in the menu, or «cosa succede?» in the
+  chat: Hoppy takes a picture of the window you were working on and Claude explains what
+  is going on, on the blackboard.
 - **Helps with work:** morning standup (from yesterday's Claude Code sessions and
   commits), forgotten changes and unpushed commits, clipboard history.
 - **Cleanup (off by default):** proposes to sort the desktop into monthly folders, to move
@@ -88,7 +91,8 @@ speech bubble; answer 👍 and it closes the mascot, popup and inline, installs 
 version with pip (no git needed) and starts them again. 👎 skips that version. To check
 right away, write *aggiornati* in the chat or use *Cerca aggiornamenti* in the menu. The
 outcome is written to `%APPDATA%\Hoppy\update.log`; you can turn the check off in the
-Settings (*Avvisi* tab).
+Settings (*Avvisi* tab). After every update, also a manual one, Hoppy shows what's new on
+the blackboard.
 
 To update by hand: `pipx install --force git+https://github.com/Bazox96/hoppy`.
 After an automatic update `pipx list` may still show the old version number: it is only
@@ -142,6 +146,8 @@ them with that profile.
 - The mascot listens on a **local port** (`127.0.0.1:48761`) to receive questions from
   `hoppy-inline`. It is not reachable from other computers; programs on your PC can only
   make it show an explanation.
+- **Spiegami lo schermo** sends a picture of the window you were working on to Claude,
+  only when you ask; it is not saved to disk. Mind windows with confidential data.
 - The **update check** is one anonymous request a day to the GitHub API
   (`api.github.com/repos/Bazox96/hoppy/releases/latest`); it can be turned off.
 
@@ -169,8 +175,9 @@ python tests/run_all.py
 
 Tests run with hidden windows and temporary data and folders.
 
-To publish a release: bump `__version__` in `hoppy/__init__.py`, commit, then
-`gh release create vX.Y.Z --generate-notes`. The tag must match the version.
+To publish a release: bump `__version__` in `hoppy/__init__.py`, add what's new at the
+top of `hoppy/changelog.py` (Hoppy shows it after updating), commit, then
+`gh release create vX.Y.Z --notes "..."`. The tag must match the version.
 
 ## License
 
