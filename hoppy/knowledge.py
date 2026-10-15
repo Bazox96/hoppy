@@ -248,6 +248,18 @@ class Knowledge:
                    key=lambda np: len(np[1]), default=None)
         return best[0] if best else (Path(cwd).name if cwd else "una sessione")
 
+    def skills(self):
+        """Le skill dei profili di Claude Code: [(nome, descrizione, di lavoro?)]."""
+        out = [(n, d, False) for n, d in read_skills(CLAUDE_PROJECTS.parent).items()]
+        if WORK_ENABLED:
+            out += [(n, d, True) for n, d in read_skills(WORK_HOME).items()]
+        return out
+
+    def skills_hint(self):
+        """Le skill in una riga per il prompt (solo quando chiedi di aprire qualcosa)."""
+        return "; ".join(f"{n} ({WORK_LABEL if w else 'personale'}): {d}"
+                         for n, d, w in self.skills())
+
     def find_project(self, name):
         """Percorso del progetto col nome dato (esatto, poi parziale), o (None, None)."""
         self.maybe_reload()
@@ -343,9 +355,29 @@ def clean_env():
                     or k.upper().startswith("CLAUDE_CODE_"))}
 
 
-def launch_claude(path, title, work=False):
+def read_skills(home):
+    """Le skill di un profilo di Claude Code (<home>/skills/*/SKILL.md): {nome: descrizione}."""
+    out = {}
+    for f in sorted(Path(home).glob("skills/*/SKILL.md")):
+        try:
+            head = f.read_text(encoding="utf-8", errors="replace")[:4000]
+        except OSError:
+            continue
+        m = re.match(r"---\s*\n(.*?)\n---", head, re.S)
+        meta = m.group(1) if m else ""
+        name = re.search(r"^name:\s*(.+)$", meta, re.M)
+        name = name.group(1).strip().strip("'\"") if name else f.parent.name
+        desc = re.search(r"^description:\s*(?:[>|]-?\s*\n)?((?:.+\n?)(?:[ \t]+.+\n?)*)", meta + "\n", re.M)
+        desc = " ".join(desc.group(1).split()).strip("'\"") if desc else ""
+        if re.fullmatch(r"[\w.:-]+", name):
+            out[name] = desc[:120]
+    return out
+
+
+def launch_claude(path, title, work=False, prompt=""):
     """Apre PowerShell (col tuo profilo) nella cartella del progetto e ci avvia Claude Code:
-    con claude-gen se è un progetto di lavoro, con claude altrimenti. True se è partita."""
+    con claude-gen se è un progetto di lavoro, con claude altrimenti; prompt (es. "/jira X")
+    parte subito come primo messaggio. True se è partita."""
     exe = shutil.which("claude") or str(Path.home() / ".local" / "bin" / "claude.exe")
     shell = shutil.which("pwsh") or shutil.which("powershell")
     if not (shell and Path(exe).exists() and os.path.isdir(path)):
@@ -354,14 +386,15 @@ def launch_claude(path, title, work=False):
     def q(s):                                # stringa PowerShell tra apici singoli
         return "'" + str(s).replace("'", "''") + "'"
 
+    arg = " " + q(" ".join(prompt.split())[:300]) if prompt.strip() else ""
     if work:                                 # il comando sta nel profilo; senza, fa lo stesso
         direct = f"$env:CLAUDE_CONFIG_DIR = {q(WORK_HOME)}; & {q(exe)}"
         cmd = WORK_LAUNCHER.strip()
-        run = (f"if (Get-Command {q(cmd)} -ErrorAction SilentlyContinue) {{ & {q(cmd)} }} "
-               f"else {{ {direct} }}") if cmd else direct
+        run = (f"if (Get-Command {q(cmd)} -ErrorAction SilentlyContinue) {{ & {q(cmd)}{arg} }} "
+               f"else {{ {direct}{arg} }}") if cmd else direct + arg
         title += f" - Claude {WORK_LABEL}"
     else:
-        run = f"& {q(exe)}"
+        run = f"& {q(exe)}{arg}"
         title += " - Claude"
     command = f"$Host.UI.RawUI.WindowTitle = {q(title)}; {run}"
     env = clean_env()

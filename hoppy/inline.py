@@ -714,7 +714,8 @@ def main():
         ctypes.windll.shcore.SetProcessDpiAwareness(1)
     except Exception:
         pass
-    pet_config.mark_running("hoppy.inline")
+    if not pet_config.mark_running("hoppy.inline"):
+        return                                   # gira già
     quit_h = pet_config.quit_event()
     root = tk.Tk()
     root.withdraw()

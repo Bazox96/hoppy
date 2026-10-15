@@ -69,8 +69,8 @@ hoppy
 ```
 
 Al primo avvio una breve presentazione spiega cosa fa e ti chiede cosa attivare,
-compreso l'avvio automatico con Windows. Poi lancia anche `hoppy-inline` e `hoppy-popup`,
-oppure attiva l'avvio automatico dalle Impostazioni.
+compreso l'avvio automatico con Windows. `hoppy` avvia anche `hoppy-popup` e `hoppy-inline`
+(si può spegnere dalle Impostazioni); si possono comunque lanciare anche da soli.
 
 Dai sorgenti:
 
@@ -145,7 +145,7 @@ e li apre con quel profilo.
 
 ## Disinstallazione
 
-1. Impostazioni > *Avvio e file*: togli l'avvio automatico (o cancella i collegamenti
+1. Impostazioni > *Avvio e file*: togli l'avvio automatico (o cancella il collegamento
    «Hoppy» in `shell:startup`).
 2. `pipx uninstall hoppy`
 3. Se vuoi cancellare anche i dati: elimina `%APPDATA%\Hoppy`.

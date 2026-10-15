@@ -291,7 +291,8 @@ def main():
         ctypes.windll.shcore.SetProcessDpiAwareness(1)  # testo nitido su schermi HiDPI
     except Exception:
         pass
-    pet_config.mark_running("hoppy.popup")
+    if not pet_config.mark_running("hoppy.popup"):
+        return                                   # gira già
     quit_h = pet_config.quit_event()
     root = tk.Tk()
     root.withdraw()

@@ -116,7 +116,9 @@ LAUNCH_HINT = (
     "Se l'utente ti chiede di aprire o avviare Claude (Claude Code) su uno dei suoi progetti, "
     "rispondi in breve e aggiungi come ultimissima riga '#AVVIA: <nome del progetto, scritto "
     "esattamente come in uno degli elenchi dei suoi progetti, personali o di lavoro>'. "
-    "Altrimenti non aggiungerla mai."
+    "Altrimenti non aggiungerla mai. Se ti chiede di usare una delle sue SKILL (anche "
+    "scrivendo /nome), aggiungi come ultimissima riga '#SKILL: <nome della skill> <argomenti, "
+    "es. il codice del ticket>' (con #AVVIA solo se nomina anche un progetto)."
 )
 LAUNCH_WORDS = ("avvia", "avviami", "apri", "aprimi", "lancia", "lanciami", "fai partire",
                 "start", "open")
@@ -132,7 +134,7 @@ REMIND_HINT = (
     "<etichetta>'. Se chiede di lanciare uno dei suoi COMANDI RAPIDI, aggiungi "
     "'#COMANDO: <nome esatto del comando>' (glielo farai confermare). Altrimenti niente."
 )
-CHAT_TAGS = ("#AVVIA:", "#PROMEMORIA:", "#TIMER:", "#COMANDO:")
+CHAT_TAGS = ("#AVVIA:", "#SKILL:", "#PROMEMORIA:", "#TIMER:", "#COMANDO:")
 # guardiano della RAM (es. driver che perdono memoria): avvisa oltre una di queste soglie
 RAM_UPTIME_H = 18           # ore di accensione
 RAM_COMMIT_PCT = 85         # memoria impegnata sul massimo
@@ -149,6 +151,7 @@ MUSIC = True                # musichetta nello studio del divulgatore
 # funzioni accese o spente (dalle Impostazioni: pet_config.SETTINGS)
 FEAT_REACTIONS = FEAT_SESSIONS = FEAT_ERRORS = FEAT_CLIP = FEAT_RAM = FEAT_ADVICE = True
 FEAT_STANDUP = FEAT_DESKTOP = FEAT_OLD = FEAT_DEV = FEAT_M2 = FEAT_UPDATES = True
+START_COMPANIONS = True     # all'avvio fa partire anche popup e inline
 UPDATE_EVERY_S = 24 * 3600   # ogni quanto chiede a GitHub se c'è una versione nuova
 # -----------------------------------------------------------------------------
 
@@ -2466,12 +2469,14 @@ class Pet:
             fallback = {"chat": "Scusa, mi si è annodata la lingua. Riprova!",
                         "advice": "Mmm, non mi viene in mente nulla di furbo adesso."}
             return self.set_bubble("chat", fallback.get(kind, "..."), cat=None)
-        launch, tags, keep = None, [], []
+        launch, skill, tags, keep = None, None, [], []
         for line in text.splitlines():           # #AVVIA:, #PROMEMORIA:... valgono solo in chat
             up = line.strip().upper()
             tag = next((t for t in CHAT_TAGS if up.startswith(t)), None) if kind == "chat" else None
             if tag == "#AVVIA:":
                 launch = line.split(":", 1)[1].strip()
+            elif tag == "#SKILL:":
+                skill = line.split(":", 1)[1].strip()
             elif tag:
                 tags.append((tag, line.split(":", 1)[1].strip()))
             else:
@@ -2484,8 +2489,8 @@ class Pet:
         clean = clean or ("Ci penso io!" if launch or tags else text)
         cmd = None
         if kind == "chat":
-            if launch:
-                clean = self.launch_from_chat(launch, clean)
+            if launch or skill:
+                clean = self.launch_from_chat(launch, clean, skill)
             clean, cmd = self.chat_tags(now, tags, clean)
             self.chat_hist = (self.chat_hist + [("Tu", clean)])[-CHAT_TURNS:]
             self.chat_at = now
@@ -2649,6 +2654,8 @@ class Pet:
             extra += "COMANDI RAPIDI: " + self.commands.hint() + "\n"
         if self.reminders_context():
             extra += "PROMEMORIA ATTIVI: " + self.reminders_context() + "\n"
+        if self.asked_launch(text) and self.know.skills_hint():   # solo se serve: costa
+            extra += "SKILL DI CLAUDE CODE: " + self.know.skills_hint() + "\n"
         prompt = (f"COSA RICORDO: {self.brain.context()} Sei {self.brain.mood_label()}.\n"
                   + self.knowledge_block(query) + extra
                   + f"CONVERSAZIONE FINORA (Tu = la mascotte):\n{talk}\n"
@@ -2677,15 +2684,35 @@ class Pet:
                 parts.append("CONVERSAZIONI PASSATE PERTINENTI:\n" + past)
         return "".join(p + "\n" for p in parts)
 
-    def launch_from_chat(self, name, reply):
-        """Apre Claude Code sul progetto, ma solo se nell'ultimo messaggio l'hai chiesto tu."""
+    @staticmethod
+    def asked_launch(text):
+        """Nel messaggio chiedi di aprire/avviare qualcosa (o scrivi /skill)?"""
+        return (text.lstrip().startswith("/")
+                or bool(re.search(r"\b(" + "|".join(LAUNCH_WORDS) + r")\b", norm(text))))
+
+    def launch_from_chat(self, name, reply, skill=None):
+        """Apre Claude Code sul progetto (e/o con una skill già avviata), ma solo se
+        nell'ultimo messaggio l'hai chiesto tu."""
         asked = next((t for w, t in reversed(self.chat_hist) if w == "Utente"), "")
-        if not re.search(r"\b(" + "|".join(LAUNCH_WORDS) + r")\b", norm(asked)):
+        if not self.asked_launch(asked):
             return reply                     # nessuna richiesta esplicita: non apre nulla
-        key, path = self.know.find_project(name)
-        if not path:
-            return reply + f"\n(Non trovo il progetto «{name}».)"
-        if not launch_claude(path, key, work=self.know.is_work(path)):
+        prompt, work, have = "", None, set()
+        if skill:
+            sname, _, args = skill.strip().lstrip("/").partition(" ")
+            have = {w for n, _, w in self.know.skills() if n.lower() == sname.lower()}
+            if not have:
+                return reply + f"\n(Non trovo la skill «{sname}».)"
+            prompt = f"/{sname} {args}".strip()
+        if name:
+            key, path = self.know.find_project(name)
+            if not path:
+                return reply + f"\n(Non trovo il progetto «{name}».)"
+            work = self.know.is_work(path)
+        else:                                # solo la skill: si apre nella tua cartella
+            key, path = prompt.split()[0], str(Path.home())
+        if have and work not in have:        # la skill sta solo nell'altro profilo
+            work = True in have
+        if not launch_claude(path, key, work=work, prompt=prompt):
             return reply + "\n(Non sono riuscita ad aprire Claude Code.)"
         return reply
 
@@ -3161,9 +3188,13 @@ def apply_config(cfg):
 def main():
     if "--after" in sys.argv:                # riavvio: aspetta che la vecchia mascotte esca
         pet_config.wait_for_exit(int(sys.argv[sys.argv.index("--after") + 1]))
-    pet_config.mark_running("hoppy.pet")
+    if not pet_config.mark_running("hoppy.pet"):
+        return                               # c'è già una mascotte
     cfg = pet_config.load()
     apply_config(cfg)
+    pet_config.drop_old_shortcuts()
+    if START_COMPANIONS:
+        pet_config.start_companions(clean_env())
     try:
         ctypes.windll.shcore.SetProcessDpiAwareness(2)   # coordinate fisiche come DWM
     except Exception:

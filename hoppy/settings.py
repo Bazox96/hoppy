@@ -460,7 +460,7 @@ class SettingsWindow(PixelWindow):
 
     def files_tab(self):
         cv = self.cv
-        self.checkbox(40, 114, "Avvia mascotte, popup e inline con Windows", self.autostart,
+        self.checkbox(40, 114, "Avvia Hoppy con Windows", self.autostart,
                       "autostart", PX_YELLOW, extra_tags=("content",))
         cv.create_text(40, 154, anchor="w", text="Apri:", fill=PX_DIM, font=BODY_FONT, tags=("content",))
         items = (("CARTELLA DATI", lambda: open_file(pc.DATA_DIR)),
@@ -591,7 +591,7 @@ class Wizard(PixelWindow):
         for k in CHOICES:
             self.checkbox(40, y, pc.BY_KEY[k].label, self.picks[k], k)
             y += 21
-        self.checkbox(40, y + 6, "Avvia mascotte, popup e inline con Windows", self.autostart, "autostart",
+        self.checkbox(40, y + 6, "Avvia Hoppy con Windows", self.autostart, "autostart",
                       PX_YELLOW)
 
     def last_page(self):

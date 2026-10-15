@@ -38,6 +38,8 @@ SETTINGS = (
              ("telekinesis", "Telecinesi"))),
     Setting("portal", "Mascotte", "Stile del portale", "choice", "sparks", "pet.PORTAL_STYLE", "",
             (("sparks", "Anello di scintille"), ("ovals", "Ovali turchese e magenta"))),
+    Setting("companions", "Mascotte", "Avvia anche popup e inline insieme a Hoppy", "bool", True,
+            "pet.START_COMPANIONS", "Ctrl+Shift+Spazio e ;;...;; funzionano solo se girano."),
     Setting("sleep_s", "Mascotte", "Si addormenta dopo (secondi senza mouse)", "int", 45,
             "pet.SLEEP_S", ""),
     Setting("hungry_min", "Mascotte", "Le viene fame dopo (minuti)", "int", 30,
@@ -180,23 +182,32 @@ def _pythonw():
 
 
 def autostart_on():
-    return all((STARTUP_DIR / f"{name}.lnk").exists() for name, _ in PROGRAMS)
+    return (STARTUP_DIR / f"{PROGRAMS[0][0]}.lnk").exists()
+
+
+def drop_old_shortcuts():
+    """Fino alla 0.1.0 c'erano tre collegamenti: ora popup e inline li avvia la mascotte."""
+    for name, _ in PROGRAMS[1:]:
+        try:
+            (STARTUP_DIR / f"{name}.lnk").unlink()
+        except OSError:
+            pass
 
 
 def set_autostart(on):
-    """Crea o toglie i collegamenti (crearli richiede PowerShell, una volta)."""
+    """Crea o toglie il collegamento della mascotte (crearlo richiede PowerShell, una volta)."""
+    drop_old_shortcuts()
     if not on:
-        for name, _ in PROGRAMS:
-            try:
-                (STARTUP_DIR / f"{name}.lnk").unlink()
-            except OSError:
-                pass
+        try:
+            (STARTUP_DIR / f"{PROGRAMS[0][0]}.lnk").unlink()
+        except OSError:
+            pass
         return True
 
     def q(s):
         return "'" + str(s).replace("'", "''") + "'"
     lines = ["$sh = New-Object -ComObject WScript.Shell"]
-    for name, module in PROGRAMS:
+    for name, module in PROGRAMS[:1]:
         lines += [f"$l = $sh.CreateShortcut({q(STARTUP_DIR / (name + '.lnk'))})",
                   f"$l.TargetPath = {q(_pythonw())}", f"$l.Arguments = {q('-m ' + module)}",
                   f"$l.WorkingDirectory = {q(Path.home())}", "$l.Save()"]
@@ -215,6 +226,14 @@ def restart_pet(env):
                      cwd=str(Path.home()), env=env, creationflags=0x08000000)
 
 
+def start_companions(env):
+    """Avvia popup e inline, se non girano già."""
+    for _, module in PROGRAMS[1:]:
+        if not is_running(module):
+            subprocess.Popen([str(_pythonw()), "-m", module], cwd=str(Path.home()), env=env,
+                             creationflags=0x08000000)
+
+
 def wait_for_exit(pid, timeout_ms=15000):
     h = ctypes.windll.kernel32.OpenProcess(0x00100000, False, pid)   # SYNCHRONIZE
     if h:
@@ -223,14 +242,20 @@ def wait_for_exit(pid, timeout_ms=15000):
 
 
 # ---- chi è in esecuzione, e il segnale per uscire (aggiornamenti) ------------------------
-_k32 = ctypes.windll.kernel32
+_k32 = ctypes.WinDLL("kernel32", use_last_error=True)
 _k32.CreateMutexW.restype = _k32.OpenMutexW.restype = _k32.CreateEventW.restype = ctypes.c_void_p
 _held = []                                   # handle tenuti aperti finché il programma gira
 
 
 def mark_running(module):
-    """Un mutex col nome del programma: dice agli altri che gira."""
-    _held.append(_k32.CreateMutexW(None, False, f"Local\\Hoppy-{module}"))
+    """Un mutex col nome del programma: dice agli altri che gira. False se c'era già
+    (un'altra copia dello stesso programma: chi chiama esce)."""
+    h = _k32.CreateMutexW(None, False, f"Local\\Hoppy-{module}")
+    if h and ctypes.get_last_error() == 183:          # ERROR_ALREADY_EXISTS
+        _k32.CloseHandle(ctypes.c_void_p(h))
+        return False
+    _held.append(h)
+    return True
 
 
 def is_running(module):

@@ -69,8 +69,8 @@ hoppy
 ```
 
 On first launch a short tour explains what it does and asks what to turn on, including
-starting with Windows. Then also launch `hoppy-inline` and `hoppy-popup`, or turn on
-autostart from the Settings.
+starting with Windows. `hoppy` also starts `hoppy-popup` and `hoppy-inline` (you can turn
+this off in the Settings); they can still be launched on their own.
 
 From source:
 
@@ -146,7 +146,7 @@ them with that profile.
 
 ## Uninstall
 
-1. Settings > *Avvio e file*: turn off autostart (or delete the «Hoppy» shortcuts in
+1. Settings > *Avvio e file*: turn off autostart (or delete the «Hoppy» shortcut in
    `shell:startup`).
 2. `pipx uninstall hoppy`
 3. To delete your data too: remove `%APPDATA%\Hoppy`.
