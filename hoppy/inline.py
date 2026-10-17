@@ -25,7 +25,6 @@ import math
 import os
 import queue
 import random
-import shutil
 import signal
 import socket
 import subprocess
@@ -33,8 +32,8 @@ import tempfile
 import threading
 import time
 import tkinter as tk
-from pathlib import Path
 
+from . import cli as pet_cli
 from . import config as pet_config
 from .i18n import T
 
@@ -340,8 +339,9 @@ def type_unicode(text):
 # ---- chiamata a Claude ------------------------------------------------------
 def ask_claude(instruction, context=None):
     """context=None: modalità TRASFORMA. Stringa (anche vuota): modalità CHIEDI."""
-    exe = shutil.which("claude") or str(Path.home() / ".local" / "bin" / "claude.exe")
-    if not Path(exe).exists():
+    exe = pet_cli.command()
+    if not exe:
+        pet_cli.log("inline", "claude not found")
         return None, T("Eseguibile 'claude' non trovato nel PATH.")
     if context is None:
         system, prompt = SYSTEM_PROMPT, T("ISTRUZIONE:") + f"\n{instruction}"
@@ -349,17 +349,23 @@ def ask_claude(instruction, context=None):
         system = ASK_PROMPT
         prompt = (T("CONTENUTO DEL DOCUMENTO:") + f"\n<<<\n{context[:MAX_CONTEXT]}\n>>>\n\n"
                   + T("DOMANDA:") + f"\n{instruction}")
-    cmd = [exe, "-p", "--model", MODEL, "--output-format", "text",
-           "--no-session-persistence", "--setting-sources", "",
-           "--strict-mcp-config", "--tools", "", "--system-prompt", system]
+    cmd = exe + ["-p", "--model", MODEL, "--output-format", "text",
+                 "--no-session-persistence", "--setting-sources", "",
+                 "--strict-mcp-config", "--tools", "", "--system-prompt", system]
     try:
         r = subprocess.run(cmd, input=prompt, capture_output=True,
-                           text=True, encoding="utf-8", timeout=TIMEOUT_S,
+                           text=True, encoding="utf-8", timeout=TIMEOUT_S, env=pet_cli.env(),
                            cwd=tempfile.gettempdir(), creationflags=CREATE_NO_WINDOW)
     except subprocess.TimeoutExpired:
+        pet_cli.log("inline", "timeout")
         return None, T("Nessuna risposta entro {secs}s.").format(secs=TIMEOUT_S)
+    except OSError as e:
+        pet_cli.log("inline", e)
+        return None, str(e)
     if r.returncode != 0:
-        return None, (r.stderr or r.stdout or f"exit code {r.returncode}").strip()
+        err = (r.stderr or r.stdout or f"exit code {r.returncode}").strip()
+        pet_cli.log("inline", err[:2000])
+        return None, err
     return r.stdout.strip(), None
 
 

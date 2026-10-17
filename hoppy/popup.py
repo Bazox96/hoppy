@@ -9,16 +9,15 @@ Esc                   chiude il popup e ripristina la clipboard precedente
 import ctypes
 import ctypes.wintypes as wt
 import queue
-import shutil
 import signal
 import subprocess
 import tempfile
 import threading
 import time
 import tkinter as tk
-from pathlib import Path
 from tkinter import messagebox
 
+from . import cli as pet_cli
 from . import config as pet_config
 from .i18n import T
 
@@ -86,23 +85,30 @@ def send_ctrl(vk):
 
 def ask_claude(instruction, selection):
     """Ritorna (testo, None) oppure (None, messaggio di errore)."""
-    exe = shutil.which("claude") or str(Path.home() / ".local" / "bin" / "claude.exe")
-    if not Path(exe).exists():
+    exe = pet_cli.command()
+    if not exe:
+        pet_cli.log("popup", "claude not found")
         return None, T("Eseguibile 'claude' non trovato nel PATH.")
     prompt = T("ISTRUZIONE:") + f"\n{instruction}"
     if selection:
         prompt += "\n\n" + T("TESTO SELEZIONATO:") + f"\n{selection}"
-    cmd = [exe, "-p", "--model", MODEL, "--output-format", "text",
-           "--no-session-persistence", "--setting-sources", "",
-           "--strict-mcp-config", "--tools", "", "--system-prompt", SYSTEM_PROMPT]
+    cmd = exe + ["-p", "--model", MODEL, "--output-format", "text",
+                 "--no-session-persistence", "--setting-sources", "",
+                 "--strict-mcp-config", "--tools", "", "--system-prompt", SYSTEM_PROMPT]
     try:
         r = subprocess.run(cmd, input=prompt, capture_output=True, text=True,
-                           encoding="utf-8", timeout=TIMEOUT_S,
+                           encoding="utf-8", timeout=TIMEOUT_S, env=pet_cli.env(),
                            cwd=tempfile.gettempdir(), creationflags=CREATE_NO_WINDOW)
     except subprocess.TimeoutExpired:
+        pet_cli.log("popup", "timeout")
         return None, T("Nessuna risposta entro {secs}s.").format(secs=TIMEOUT_S)
+    except OSError as e:
+        pet_cli.log("popup", e)
+        return None, str(e)
     if r.returncode != 0:
-        return None, (r.stderr or r.stdout or f"exit code {r.returncode}").strip()
+        err = (r.stderr or r.stdout or f"exit code {r.returncode}").strip()
+        pet_cli.log("popup", err[:2000])
+        return None, err
     return r.stdout.strip(), None
 
 

@@ -129,7 +129,16 @@ PowerShell window. (The keys are Italian: `nome` = name, `descrizione` = descrip
 
 If you use a second Claude Code configuration (e.g. for work, with its own
 `CLAUDE_CONFIG_DIR`), set it in Settings > *Claude*: Hoppy will know its projects and open
-them with that profile.
+them with that profile. Hoppy's own answers use your personal profile (`~/.claude`); if
+you only use Claude Code with the second one (e.g. a work account), set *Hoppy's answers
+use the profile* to *second profile*: Hoppy then passes Claude that folder and the `env`
+block of its `settings.json` (nothing else: no hooks, no plugins).
+
+### If Hoppy says it got tongue-tied
+
+The real error is in `%APPDATA%\Hoppy\errors.log`. Most of the time Claude is not logged in
+on the profile Hoppy uses: open a terminal, type `claude` and run `/login`, or pick the other
+profile as above.
 
 ## Data and privacy
 

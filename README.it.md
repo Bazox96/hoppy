@@ -128,7 +128,16 @@ In chat: «esegui il comando docker» → Hoppy chiede conferma e lo lancia in u
 
 Se usi una seconda configurazione di Claude Code (es. per il lavoro, con una sua
 `CLAUDE_CONFIG_DIR`), indicala nelle Impostazioni > *Claude*: Hoppy ne conosce i progetti
-e li apre con quel profilo.
+e li apre con quel profilo. Le risposte di Hoppy usano il tuo profilo personale
+(`~/.claude`); se usi Claude Code solo col secondo (es. un account aziendale), metti *Le
+risposte di Hoppy usano il profilo* su *secondo profilo*: Hoppy passa a Claude quella
+cartella e il blocco `env` del suo `settings.json` (nient'altro: niente hook né plugin).
+
+### Se Hoppy dice che gli si è annodata la lingua
+
+L'errore vero è in `%APPDATA%\Hoppy\errors.log`. Quasi sempre Claude non ha il login sul
+profilo che usa Hoppy: apri un terminale, scrivi `claude` e fai `/login`, oppure scegli
+l'altro profilo come sopra.
 
 ## Dati e privacy
 

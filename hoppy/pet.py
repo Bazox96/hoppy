@@ -58,6 +58,7 @@ from pathlib import Path
 
 from . import changelog as pet_changelog
 from . import chores as pet_chores
+from . import cli as pet_cli
 from . import config as pet_config
 from . import knowledge as pet_knowledge
 from . import screen as pet_screen
@@ -269,10 +270,11 @@ def active_app(own_pid):
 def ask_claude(prompt, system, timeout=90, image=None):
     """Una domanda a Claude via CLI (piano abbonamento). Ritorna (testo, None) o (None, errore).
     image: PNG da fargli guardare insieme al testo."""
-    exe = shutil.which("claude") or str(Path.home() / ".local" / "bin" / "claude.exe")
-    if not Path(exe).exists():
+    exe = pet_cli.command()
+    if not exe:
+        pet_cli.log("mascotte", "claude not found")
         return None, T("CLI 'claude' non trovata")
-    cmd = [exe, "-p", "--model", MODEL, "--output-format", "json",
+    cmd = exe + ["-p", "--model", MODEL, "--output-format", "json",
            "--no-session-persistence", "--setting-sources", "", "--strict-mcp-config",
            "--tools", "", "--system-prompt", system]
     if image:                                # testo + immagine: si passa come messaggio JSON
@@ -284,9 +286,10 @@ def ask_claude(prompt, system, timeout=90, image=None):
             {"type": "text", "text": prompt}]}}) + "\n"
     try:
         r = subprocess.run(cmd, input=prompt, capture_output=True, text=True, encoding="utf-8",
-                           timeout=timeout, cwd=tempfile.gettempdir(), env=clean_env(),
+                           timeout=timeout, cwd=tempfile.gettempdir(), env=pet_cli.env(),
                            creationflags=0x08000000)   # CREATE_NO_WINDOW
     except (subprocess.TimeoutExpired, OSError) as e:
+        pet_cli.log("mascotte", e)
         return None, str(e)
     try:
         out = json.loads(r.stdout.strip().splitlines()[-1])   # stream-json: l'esito è l'ultima riga
@@ -294,7 +297,9 @@ def ask_claude(prompt, system, timeout=90, image=None):
         out = {}
     COSTS.put(out.get("total_cost_usd") or 0.0)   # la spesa la conta la mascotte (pet_work)
     if r.returncode != 0 or out.get("is_error") or "result" not in out:
-        return None, (r.stderr or out.get("result") or r.stdout or "errore").strip()[:200]
+        err = (r.stderr or out.get("result") or r.stdout or f"exit code {r.returncode}").strip()
+        pet_cli.log("mascotte", err[:2000])
+        return None, err[:200]
     return out["result"].strip(), None
 
 
@@ -2534,7 +2539,7 @@ class Pet:
         if err or not text:
             if kind == "chat" and self.chat_hist and self.chat_hist[-1][0] == "Utente":
                 self.chat_hist.pop()             # domanda rimasta senza risposta
-            fallback = {"chat": T("Scusa, mi si è annodata la lingua. Riprova!"),
+            fallback = {"chat": pet_cli.friendly(err) if err else T("Scusa, mi si è annodata la lingua. Riprova!"),
                         "advice": T("Mmm, non mi viene in mente nulla di furbo adesso.")}
             return self.set_bubble("chat", fallback.get(kind, "..."), cat=None)
         launch, skill, tags, keep = None, None, [], []

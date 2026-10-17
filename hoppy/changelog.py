@@ -4,6 +4,10 @@ from . import __version__
 from .i18n import T
 
 CHANGES = (
+    ("0.1.5", (T("**Scegli il profilo di Claude**: in Impostazioni > Claude puoi far rispondere "
+                 "Hoppy col secondo profilo (es. l'account aziendale)."),
+               T("Se Claude non risponde, Hoppy ti dice perché e annota l'errore in errors.log."),
+               T("Funziona anche con Claude Code installato da npm."))),
     ("0.1.4", (T("**Parlo anche inglese**: scegli la lingua in Impostazioni > Mascotte > Lingua / Language."),)),
     ("0.1.3", (T("**Spiegami lo schermo**: dal menu, o scrivendo in chat «cosa succede?», Hoppy "
                  "fotografa la finestra su cui stavi lavorando e Claude ti spiega cosa vede."),

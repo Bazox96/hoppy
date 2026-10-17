@@ -673,4 +673,28 @@ EN = {
         'Updates itself when a new version comes out.',
     'Prima versione.':
         'First version.',
+    '**Scegli il profilo di Claude**: in Impostazioni > Claude puoi far rispondere Hoppy col secondo profilo (es. l\'account aziendale).':
+        '**Choose the Claude profile**: in Settings > Claude you can have Hoppy answer with your second profile (e.g. your work account).',
+    'Se Claude non risponde, Hoppy ti dice perché e annota l\'errore in errors.log.':
+        "If Claude doesn't answer, Hoppy tells you why and writes the error to errors.log.",
+    'Funziona anche con Claude Code installato da npm.':
+        'Also works with Claude Code installed from npm.',
+    'Le risposte di Hoppy usano il profilo':
+        "Hoppy's answers use the profile",
+    'Scegli il secondo profilo se usi Claude Code solo lì (es. account aziendale).':
+        'Pick the second profile if that is the only one you use Claude Code with (e.g. a work account).',
+    'personale (~/.claude)':
+        'personal (~/.claude)',
+    'secondo profilo (sotto)':
+        'second profile (below)',
+    'Non trovo Claude Code. Installalo (claude.ai/install) e riprova.':
+        "I can't find Claude Code. Install it (claude.ai/install) and try again.",
+    "Claude non ha il login su questo profilo. Apri un terminale, scrivi claude e fai /login, oppure scegli l'altro profilo in Impostazioni > Claude.":
+        'Claude is not logged in on this profile. Open a terminal, type claude and run /login, or pick the other profile in Settings > Claude.',
+    'Ho finito il credito di Claude o ho raggiunto un limite. Riprova più tardi.':
+        "I'm out of Claude credit or hit a limit. Try again later.",
+    "Claude non ha risposto in tempo: forse la rete è lenta o c'è un proxy.":
+        "Claude didn't answer in time: maybe the network is slow or there's a proxy.",
+    'Scusa, mi si è annodata la lingua. Riprova! (Il motivo è in errors.log, nella cartella di Hoppy.)':
+        "Sorry, I got tongue-tied. Try again! (The reason is in errors.log, in Hoppy's folder.)",
 }
