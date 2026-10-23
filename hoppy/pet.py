@@ -1245,11 +1245,19 @@ class Pet:
         cur = self.plat_at(self.x, self.y)
         if cur is None:
             return
+        here = self.monitor_at(*self.mouse)
+        others = [m for m in self.mons if m is not self.mon and (self.follow or m is not here)]
+        if not self.follow and self.mon is here and others:   # non seguire: lascia libero il
+            if now >= self.portal_ready:                      # tuo schermo e va su un altro
+                m = random.choice(others)
+                T = m.plats[0]
+                return self.start_portal(now, m, T, random.uniform(T[2] + MARGIN, T[3] - MARGIN))
+            self.next_think = now + 0.5
+            return
         if now >= self.next_activity and random.random() < 0.6:
             self.next_activity = now + random.uniform(ACTIVITY_MIN, ACTIVITY_MIN * 3)
             return self.start_activity(now, cur)
         r = random.random()
-        others = [m for m in self.mons if m is not self.mon]
         if r >= 0.975 and others and now >= self.portal_ready:   # gita su un altro schermo
             m = random.choice(others)
             T = m.plats[0]
@@ -1776,6 +1784,7 @@ class Pet:
     def toggle_follow(self, _e):
         self.follow = not self.follow
         self.menu_until = time.time() + 2
+        self.next_think = time.time()        # con "no" se ne va subito dal tuo schermo
 
     def toggle_portal(self, _e):
         self.portal_style = "ovals" if self.portal_style == "sparks" else "sparks"
