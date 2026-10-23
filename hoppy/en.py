@@ -679,6 +679,8 @@ EN = {
         "If Claude doesn't answer, Hoppy tells you why and writes the error to errors.log.",
     'Funziona anche con Claude Code installato da npm.':
         'Also works with Claude Code installed from npm.',
+    "**Segui il mouse: no** ora vuol dire che Hoppy ti lascia lavorare: se hai più schermi, va su uno diverso da quello dove c'è il cursore.":
+        "**Follow the mouse: no** now means Hoppy lets you work: if you have more than one screen, it moves to one other than the one with your cursor.",
     'Le risposte di Hoppy usano il profilo':
         "Hoppy's answers use the profile",
     'Scegli il secondo profilo se usi Claude Code solo lì (es. account aziendale).':

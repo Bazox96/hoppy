@@ -4,6 +4,8 @@ from . import __version__
 from .i18n import T
 
 CHANGES = (
+    ("0.1.6", (T("**Segui il mouse: no** ora vuol dire che Hoppy ti lascia lavorare: se hai più "
+                 "schermi, va su uno diverso da quello dove c'è il cursore."),)),
     ("0.1.5", (T("**Scegli il profilo di Claude**: in Impostazioni > Claude puoi far rispondere "
                  "Hoppy col secondo profilo (es. l'account aziendale)."),
                T("Se Claude non risponde, Hoppy ti dice perché e annota l'errore in errors.log."),
